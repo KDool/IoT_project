@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: iot_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: iot_des
+      MYSQL_USER: iot_user
+      MYSQL_PASSWORD: iot_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Mount file init.sql into MySQL
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - iot_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: iot_grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: adminpassword
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - mysql
+    networks:
+      - iot_network
+
+volumes:
+  mysql_data:
+  grafana_data:
+
+networks:
+  iot_network:
+    driver: bridge
