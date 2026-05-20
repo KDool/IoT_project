@@ -55,3 +55,38 @@ The infrastructure is defined in `infrastructure/docker-compose.yaml` and brings
    - **User**: `iot_user`
    - **Password**: `iot_password`
 5. Click **Save & test**.
+
+## Cloud application (Python / CoAP)
+
+The CoAP demo lives in `cloud-application/` and uses `aiocoap`.
+
+### Create virtual environment (`env`)
+
+From the repo root:
+- `cd cloud-application`
+- `python3 -m venv env`
+
+Activate it:
+- macOS/Linux/WSL: `source env/bin/activate`
+- Windows (PowerShell): `.\env\Scripts\Activate.ps1`
+
+### Install dependencies
+
+With the venv activated:
+- `python -m pip install --upgrade pip`
+- `pip install -r requirements.txt`
+
+### Test `server.py` and `client.py`
+
+In terminal 1 (starts a CoAP server on localhost):
+- `cd cloud-application`
+- `source env/bin/activate` (or Windows activate command above)
+- `python server.py`
+
+In terminal 2 (runs a CoAP GET to `/hello`):
+- `cd cloud-application`
+- `source env/bin/activate` (or Windows activate command above)
+- `python client.py`
+
+Expected output from `client.py`:
+- `Hello`
