@@ -1,92 +1,248 @@
-<mxfile host="app.diagrams.net">
+<mxfile host="app.diagrams.net" pages="2">
   <diagram id="qzBoE1i7hIZLwkol1Z3T" name="Pagina-1">
-    <mxGraphModel dx="979" dy="587" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1835" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="zone-mqtt" parent="1" style="html=1;swimlane;startSize=30;fillColor=#FFF8E7;strokeColor=#BA7517;fontColor=#854F0B;fontSize=13;fontStyle=1;dashed=1;dashPattern=8 4;rounded=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;" value="MQTT-SN (Zigbee / LoRa)  +  MQTT (TCP/IP)" vertex="1">
-          <mxGeometry height="680" width="740" x="30" y="40" as="geometry" />
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-42" parent="1" style="html=1;text;fontSize=16;align=center;verticalAlign=middle;fontColor=#1a1a1a;" value="&lt;b&gt;Off-Grid Energy System — Control Logic&lt;/b&gt;&lt;br/&gt;Solar 600W · Wind 400W · Diesel 1–3.5kW · Battery 10kWh LiFePO4" vertex="1">
+          <mxGeometry height="50" width="1560" x="1210" y="960" as="geometry" />
         </mxCell>
-        <mxCell id="load" parent="zone-mqtt" style="html=1;rounded=1;arcSize=8;fillColor=#EAF3DE;strokeColor=#3B6D11;fontColor=#27500A;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Variable Load (aggregated consumers)&lt;/b&gt;&lt;br&gt;PUBLISH energy/load/1/telemetry&lt;br&gt;Watt&lt;div&gt;QoS 1 · retain false&lt;/div&gt;" vertex="1">
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-43" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FFF3CD;strokeColor=#BA7517;fontColor=#633806;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Solar Panel&lt;/b&gt;&lt;br/&gt;Max: 600W&lt;br/&gt;Always ON&lt;br/&gt;Disconnected only if&lt;br/&gt;SoC = 100%" vertex="1">
+          <mxGeometry height="110" width="160" x="1210" y="1030" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-44" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#D6F5EC;strokeColor=#0F6E56;fontColor=#085041;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Wind Turbine&lt;/b&gt;&lt;br/&gt;Max: 400W&lt;br/&gt;Always ON&lt;br/&gt;Disconnected only if&lt;br/&gt;SoC = 100%" vertex="1">
+          <mxGeometry height="110" width="160" x="1210" y="1170" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-45" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Diesel Generator&lt;/b&gt;&lt;br/&gt;Range: 1kW – 3.5kW&lt;br/&gt;OFF by default&lt;br/&gt;Warmup: ~40s&lt;br/&gt;Anchor / backup only" vertex="1">
+          <mxGeometry height="110" width="160" x="1210" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-46" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#DCEEFB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Battery + BMS&lt;/b&gt;&lt;br/&gt;10kWh LiFePO4&lt;br/&gt;Max charge: 2kW&lt;br/&gt;Max discharge: 3kW&lt;br/&gt;SoC: 0–100%" vertex="1">
+          <mxGeometry height="110" width="160" x="1210" y="1450" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-47" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#EAF3DE;strokeColor=#3B6D11;fontColor=#27500A;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Aggregated Load&lt;/b&gt;&lt;br&gt;Range: 300W–2kW&lt;div&gt;typical:~800W&lt;br&gt;Peak: up to 3kW&lt;br&gt;Variable · uncontrolled&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="160" x="1210" y="1590" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-48" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#F5F0FF;strokeColor=#534AB7;fontColor=#3C3489;fontSize=11;align=left;verticalAlign=middle;spacingLeft=12;strokeWidth=2;" value="&lt;b&gt;Energy Balance&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;surplus = solar_W + wind_W − load_W&lt;br/&gt;&lt;br/&gt;surplus &gt; 0 → charge battery&lt;br/&gt;surplus &lt; 0 → deficit" vertex="1">
+          <mxGeometry height="130" width="280" x="1430" y="1240" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-49" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-43" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#BA7517;strokeWidth=1.5;endArrow=block;endFill=1;" target="-E0fXx2txcq9CTdwG2PH-48">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-50" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-44" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#0F6E56;strokeWidth=1.5;endArrow=block;endFill=1;" target="-E0fXx2txcq9CTdwG2PH-48">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-51" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-47" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#3B6D11;strokeWidth=1.5;endArrow=block;endFill=1;" target="-E0fXx2txcq9CTdwG2PH-48">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-52" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-46" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.5;endArrow=block;endFill=1;" target="-E0fXx2txcq9CTdwG2PH-48">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-55" parent="1" style="html=1;rhombus;fillColor=#F5F0FF;strokeColor=#534AB7;fontColor=#3C3489;fontSize=11;align=center;verticalAlign=middle;" value="SoC = 100%?" vertex="1">
+          <mxGeometry height="80" width="140" x="1990" y="1030" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-56" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-101" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#534AB7;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;fontColor=#534AB7;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" target="-E0fXx2txcq9CTdwG2PH-55" value="YES">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1860" y="1190" as="sourcePoint" />
+            <mxPoint x="1955.1069230769233" y="1099.8760439560442" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-57" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#DCEEFB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;align=center;verticalAlign=middle;" value="Charge battery&lt;br&gt;(max 1KW)" vertex="1">
+          <mxGeometry height="60" width="140" x="1990" y="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-59" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FFF3CD;strokeColor=#BA7517;fontColor=#633806;fontSize=11;align=center;verticalAlign=middle;" value="Relay OFF&lt;br/&gt;solar + wind&lt;br/&gt;(disconnect)" vertex="1">
+          <mxGeometry height="70" width="140" x="2190" y="1030" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-60" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-55" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#BA7517;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;fontColor=#BA7517;" target="-E0fXx2txcq9CTdwG2PH-59" value="YES">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-61" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-55" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#534AB7;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;fontColor=#534AB7;" target="-E0fXx2txcq9CTdwG2PH-57" value="NO">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-62" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#D6F5EC;strokeColor=#0F6E56;fontColor=#085041;fontSize=11;align=center;verticalAlign=middle;" value="Relay ON&lt;br/&gt;when SoC &lt; 95%&lt;br/&gt;(reconnect)" vertex="1">
+          <mxGeometry height="70" width="140" x="2190" y="1130" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-63" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-59" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#0F6E56;strokeWidth=1;endArrow=block;endFill=1;dashed=1;fontSize=9;" target="-E0fXx2txcq9CTdwG2PH-62">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-66" parent="1" style="html=1;rhombus;fillColor=#F5F0FF;strokeColor=#534AB7;fontColor=#3C3489;fontSize=11;align=center;verticalAlign=middle;" value="SoC &amp;gt;&lt;br&gt;dynamic&lt;br&gt;threshold&amp;gt;&amp;gt;0.03%" vertex="1">
+          <mxGeometry height="90" width="140" x="2000" y="1350" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-67" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-101" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#534AB7;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;fontColor=#534AB7;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="-E0fXx2txcq9CTdwG2PH-66" value="NO">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1929.8653846153848" y="1460.0769230769229" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-68" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#DCEEFB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;align=center;verticalAlign=middle;" value="Discharge battery&lt;br/&gt;(max 3kW)" vertex="1">
+          <mxGeometry height="60" width="140" x="2130" y="1490" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-69" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-66" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.2;endArrow=block;endFill=1;fontSize=10;fontColor=#185FA5;" target="-E0fXx2txcq9CTdwG2PH-68" value="YES&lt;br/&gt;(enough)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-70" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;align=center;verticalAlign=middle;" value="Start diesel&lt;br/&gt;battery covers&lt;br/&gt;load during 40s&lt;br/&gt;warmup" vertex="1">
+          <mxGeometry height="80" width="140" x="2190" y="1270" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-71" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-66" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#993C1D;" target="-E0fXx2txcq9CTdwG2PH-70" value="NO&lt;br/&gt;(below threshold)">
+          <mxGeometry relative="1" x="-0.0047" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-72" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;align=center;verticalAlign=middle;" value="Setpoint diesel =&lt;br/&gt;deficit + battery&lt;br/&gt;recharge rate&lt;br/&gt;(1kW – 3.5kW)" vertex="1">
+          <mxGeometry height="80" width="150" x="2390" y="1340" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-73" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-70" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;strokeWidth=1.2;endArrow=block;endFill=1;" target="-E0fXx2txcq9CTdwG2PH-72">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-74" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;align=center;verticalAlign=middle;" value="Stop diesel&lt;br/&gt;when surplus &gt; 0&lt;br/&gt;AND SoC &gt; 60%" vertex="1">
+          <mxGeometry height="70" width="150" x="2390" y="1460" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-75" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-72" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;strokeWidth=1;endArrow=block;endFill=1;dashed=1;fontSize=9;" target="-E0fXx2txcq9CTdwG2PH-74">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-76" parent="1" style="html=1;swimlane;startSize=28;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#712B13;fontSize=12;fontStyle=1;dashed=1;dashPattern=6 3;rounded=1;arcSize=3;" value="Diesel State Machine" vertex="1">
+          <mxGeometry height="130" width="900" x="2470" y="1160" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-77" parent="1" style="html=1;ellipse;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;" value="&lt;b&gt;IDLE&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="100" x="2490" y="1198" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-78" parent="1" style="html=1;ellipse;fillColor=#F5C9B8;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;" value="&lt;b&gt;warming up&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="2640" y="1198" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-79" parent="1" style="html=1;ellipse;fillColor=#F5C9B8;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;" value="&lt;b&gt;Cranking&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="2820" y="1198" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-80" parent="1" style="html=1;ellipse;fillColor=#F0A080;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;" value="&lt;b&gt;READY&lt;/b&gt;" vertex="1">
+          <mxGeometry height="60" width="100" x="3000" y="1198" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-81" parent="1" style="html=1;ellipse;fillColor=#E8845A;strokeColor=#993C1D;fontColor=#FFFFFF;fontSize=11;" value="&lt;b&gt;RUNNING&lt;/b&gt;&lt;br/&gt;1–3.5kW" vertex="1">
+          <mxGeometry height="60" width="120" x="3160" y="1198" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-82" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-77" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;fontSize=9;endArrow=block;endFill=1;" target="-E0fXx2txcq9CTdwG2PH-78" value="start cmd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-83" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-78" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;fontSize=9;endArrow=block;endFill=1;" target="-E0fXx2txcq9CTdwG2PH-79" value="TMP OK">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-84" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-79" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;fontSize=9;endArrow=block;endFill=1;" target="-E0fXx2txcq9CTdwG2PH-80" value="RPM OK">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-85" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-80" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;fontSize=9;endArrow=block;endFill=1;" target="-E0fXx2txcq9CTdwG2PH-81" value="load connected">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-87" parent="1" style="html=1;swimlane;startSize=28;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=12;fontStyle=1;dashed=1;dashPattern=8 4;rounded=1;arcSize=3;" value="ML Forecasting — Dynamic SoC Threshold" vertex="1">
+          <mxGeometry height="150" width="740" x="1660" y="1754" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-93" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-87" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.5;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;fontSize=10;fontColor=#185FA5;entryX=0;entryY=1;entryDx=0;entryDy=0;exitX=0.359;exitY=0.032;exitDx=0;exitDy=0;exitPerimeter=0;startArrow=classic;startFill=1;" target="-E0fXx2txcq9CTdwG2PH-66" value="updates dynamic threshold">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1920" y="1710" as="sourcePoint" />
+            <mxPoint x="1600" y="2110" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-94" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#FFF8E7;strokeColor=#BA7517;fontColor=#633806;fontSize=10;align=left;verticalAlign=middle;spacingLeft=10;" value="&lt;b&gt;Warmup coverage:&lt;/b&gt; battery must hold&lt;br&gt;enough charge to cover load during 40s&lt;br&gt;Example @ 2kW load:&lt;br&gt;2000W × (40/3600)h × 1.5 = &lt;b&gt;~33Wh&lt;/b&gt;&lt;div&gt;&lt;b&gt;that is 0.03% of SoC&lt;/b&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="200" x="2390" y="1590" as="geometry" />
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-102" edge="1" parent="1" source="-E0fXx2txcq9CTdwG2PH-48" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#534AB7;strokeWidth=1.5;endArrow=block;endFill=1;fontSize=10;fontColor=#534AB7;" target="-E0fXx2txcq9CTdwG2PH-101" value="">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1710" y="1305" as="sourcePoint" />
+            <mxPoint x="1860" y="1380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-E0fXx2txcq9CTdwG2PH-101" parent="1" style="html=1;rhombus;fillColor=#F5F0FF;strokeColor=#534AB7;fontColor=#3C3489;fontSize=11;align=center;verticalAlign=middle;" value="surplus&amp;gt;0" vertex="1">
+          <mxGeometry height="90" width="140" x="1790" y="1260" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="3fiLF9YttlhuHb4dGEXX" name="Pagina-2">
+    <mxGraphModel dx="1868" dy="1280" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-1" parent="1" style="text;whiteSpace=wrap;" value="&amp;lt;mxGraphModel&amp;gt;&amp;lt;root&amp;gt;&amp;lt;mxCell%20id%3D%220%22%2F&amp;gt;&amp;lt;mxCell%20id%3D%221%22%20parent%3D%220%22%2F&amp;gt;&amp;lt;mxCell%20id%3D%222%22%20parent%3D%221%22%20style%3D%22html%3D1%3Brounded%3D1%3BarcSize%3D8%3BfillColor%3D%23D6F5EC%3BstrokeColor%3D%230F6E56%3BfontColor%3D%23085041%3BfontSize%3D11%3Balign%3Dcenter%3BverticalAlign%3Dmiddle%3B%22%20value%3D%22Relay%20ON%26lt%3Bbr%2F%26gt%3Bwhen%20SoC%20%26lt%3B%2095%25%26lt%3Bbr%2F%26gt%3B(reconnect)%22%20vertex%3D%221%22&amp;gt;&amp;lt;mxGeometry%20height%3D%2270%22%20width%3D%22140%22%20x%3D%222190%22%20y%3D%221130%22%20as%3D%22geometry%22%2F&amp;gt;&amp;lt;%2FmxCell&amp;gt;&amp;lt;%2Froot&amp;gt;&amp;lt;%2FmxGraphModel&amp;gt;" vertex="1">
+          <mxGeometry height="36" width="550" x="-169.45452880859375" y="-22.207794189453125" as="geometry" />
+        </mxCell>
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-2" parent="1" style="html=1;swimlane;startSize=30;fillColor=#FFF8E7;strokeColor=#BA7517;fontColor=#854F0B;fontSize=13;fontStyle=1;dashed=1;dashPattern=8 4;rounded=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;" value="MQTT-SN (Zigbee / LoRa)  +  MQTT (TCP/IP)" vertex="1">
+          <mxGeometry height="680" width="740" x="65.5548095703125" y="159.792236328125" as="geometry" />
+        </mxCell>
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-3" parent="JIawFKVB7-rXlWrrBtZz-2" style="html=1;rounded=1;arcSize=8;fillColor=#EAF3DE;strokeColor=#3B6D11;fontColor=#27500A;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Variable Load (aggregated consumers)&lt;/b&gt;&lt;br&gt;PUBLISH energy/load/1/telemetry&lt;br&gt;Watt&lt;div&gt;QoS 1 · retain false&lt;/div&gt;" vertex="1">
           <mxGeometry height="80" width="240" x="210" y="580" as="geometry" />
         </mxCell>
-        <mxCell id="battery" parent="zone-mqtt" style="html=1;rounded=1;arcSize=8;fillColor=#DCEEFB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Battery + BMS&lt;/b&gt;&lt;br/&gt;PUBLISH energy/battery/1/status&lt;br/&gt;SUBSCRIBE energy/battery/1/cmd&lt;br/&gt;QoS 2 · retain true" vertex="1">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-4" parent="JIawFKVB7-rXlWrrBtZz-2" style="html=1;rounded=1;arcSize=8;fillColor=#DCEEFB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Battery + BMS&lt;/b&gt;&lt;br/&gt;PUBLISH energy/battery/1/status&lt;br/&gt;SUBSCRIBE energy/battery/1/cmd&lt;br/&gt;QoS 2 · retain true" vertex="1">
           <mxGeometry height="80" width="190" x="440" y="300" as="geometry" />
         </mxCell>
-        <mxCell id="engine" parent="zone-mqtt" style="html=1;rounded=1;arcSize=8;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Combustion Engine&lt;/b&gt;&lt;br/&gt;PUBLISH energy/engine/1/telemetry&lt;br/&gt;SUBSCRIBE energy/engine/1/cmd&lt;br/&gt;QoS 1" vertex="1">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-5" parent="JIawFKVB7-rXlWrrBtZz-2" style="html=1;rounded=1;arcSize=8;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Combustion Engine&lt;/b&gt;&lt;br/&gt;PUBLISH energy/engine/1/telemetry&lt;br/&gt;SUBSCRIBE energy/engine/1/cmd&lt;br/&gt;QoS 1" vertex="1">
           <mxGeometry height="80" width="190" x="10" y="300" as="geometry" />
         </mxCell>
-        <mxCell id="wind" parent="zone-mqtt" style="html=1;rounded=1;arcSize=8;fillColor=#D6F5EC;strokeColor=#0F6E56;fontColor=#085041;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Wind Turbine&lt;/b&gt;&lt;br&gt;PUBLISH energy/wind/1/telemetry&lt;div&gt;&lt;span style=&quot;background-color: transparent; font-family: var(--font-mono); white-space: pre-wrap; color: rgb(20, 24, 31);&quot;&gt;SUBSCRIBE energy/wind/1/cmd  &lt;/span&gt;&lt;p class=&quot;font-claude-response-body break-words whitespace-normal leading-[1.7]&quot;&gt;&lt;/p&gt;&lt;div&gt;QoS 1 · retain false&lt;/div&gt;&lt;/div&gt;" vertex="1">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-6" parent="JIawFKVB7-rXlWrrBtZz-2" style="html=1;rounded=1;arcSize=8;fillColor=#D6F5EC;strokeColor=#0F6E56;fontColor=#085041;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Wind Turbine&lt;/b&gt;&lt;br&gt;PUBLISH energy/wind/1/telemetry&lt;div&gt;&lt;span style=&quot;background-color: transparent; font-family: var(--font-mono); white-space: pre-wrap; color: rgb(20, 24, 31);&quot;&gt;SUBSCRIBE energy/wind/1/cmd  &lt;/span&gt;&lt;p class=&quot;font-claude-response-body break-words whitespace-normal leading-[1.7]&quot;&gt;&lt;/p&gt;&lt;div&gt;QoS 1 · retain false&lt;/div&gt;&lt;/div&gt;" vertex="1">
           <mxGeometry height="80" width="190" x="460" y="50" as="geometry" />
         </mxCell>
-        <mxCell id="zone-coap" parent="1" style="html=1;swimlane;startSize=30;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=13;fontStyle=1;dashed=1;dashPattern=8 4;rounded=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;" value="CoAP (UDP / DTLS)" vertex="1">
-          <mxGeometry height="680" width="400" x="820" y="40" as="geometry" />
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-7" parent="1" style="html=1;swimlane;startSize=30;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=13;fontStyle=1;dashed=1;dashPattern=8 4;rounded=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;" value="CoAP (UDP / DTLS)" vertex="1">
+          <mxGeometry height="680" width="400" x="855.5548095703125" y="159.792236328125" as="geometry" />
         </mxCell>
-        <mxCell id="solar1" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FFF3CD;strokeColor=#BA7517;fontColor=#633806;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Solar Panel 1&lt;/b&gt;&lt;br&gt;PUBLISH energy/solar/1/telemetry&lt;div&gt;SUBSCRIBE energy/solar/1/cmd&lt;br&gt;QoS 1 · retain false&lt;/div&gt;" vertex="1">
-          <mxGeometry height="80" width="190" x="70" y="90" as="geometry" />
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-8" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FFF3CD;strokeColor=#BA7517;fontColor=#633806;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Solar Panel 1&lt;/b&gt;&lt;br&gt;PUBLISH energy/solar/1/telemetry&lt;div&gt;SUBSCRIBE energy/solar/1/cmd&lt;br&gt;QoS 1 · retain false&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="190" x="105.5548095703125" y="209.792236328125" as="geometry" />
         </mxCell>
-        <mxCell id="solar2" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FFF3CD;strokeColor=#BA7517;fontColor=#633806;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Solar Panel 2&lt;/b&gt;&lt;br&gt;PUBLISH energy/solar/2/telemetry&lt;div&gt;SUBSCRIBE energy/solar/2/cmd&lt;br&gt;QoS 1 · retain false&lt;/div&gt;" vertex="1">
-          <mxGeometry height="80" width="190" x="280" y="90" as="geometry" />
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-9" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FFF3CD;strokeColor=#BA7517;fontColor=#633806;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Solar Panel 2&lt;/b&gt;&lt;br&gt;PUBLISH energy/solar/2/telemetry&lt;div&gt;SUBSCRIBE energy/solar/2/cmd&lt;br&gt;QoS 1 · retain false&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="190" x="315.5548095703125" y="209.792236328125" as="geometry" />
         </mxCell>
-        <mxCell id="broker" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#EEEDFE;strokeColor=#534AB7;fontColor=#3C3489;fontSize=11;align=center;verticalAlign=middle;strokeWidth=2;" value="&lt;b&gt;Border Router · MQTT Broker&lt;/b&gt;&lt;br/&gt;SUBSCRIBE energy/#&lt;br/&gt;Load balancing logic · QoS bridge&lt;br/&gt;MQTT-SN ↔ MQTT · MQTT → CoAP gateway" vertex="1">
-          <mxGeometry height="90" width="340" x="200" y="480" as="geometry" />
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-10" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#EEEDFE;strokeColor=#534AB7;fontColor=#3C3489;fontSize=11;align=center;verticalAlign=middle;strokeWidth=2;" value="&lt;b&gt;Border Router · MQTT Broker&lt;/b&gt;&lt;br/&gt;SUBSCRIBE energy/#&lt;br/&gt;Load balancing logic · QoS bridge&lt;br/&gt;MQTT-SN ↔ MQTT · MQTT → CoAP gateway" vertex="1">
+          <mxGeometry height="90" width="340" x="235.5548095703125" y="599.792236328125" as="geometry" />
         </mxCell>
-        <mxCell id="e-solar1" edge="1" parent="1" source="solar1" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#BA7517;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-11" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-8" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#BA7517;strokeWidth=1.5;endArrow=block;endFill=1;" target="JIawFKVB7-rXlWrrBtZz-10">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-solar2" edge="1" parent="1" source="solar2" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#BA7517;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-12" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-9" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#BA7517;strokeWidth=1.5;endArrow=block;endFill=1;" target="JIawFKVB7-rXlWrrBtZz-10">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-wind" edge="1" parent="1" source="wind" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#0F6E56;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-13" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-6" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#0F6E56;strokeWidth=1.5;endArrow=block;endFill=1;" target="JIawFKVB7-rXlWrrBtZz-10">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-engine-pub" edge="1" parent="1" source="engine" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-14" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-5" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;strokeWidth=1.5;endArrow=block;endFill=1;" target="JIawFKVB7-rXlWrrBtZz-10">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-battery-pub" edge="1" parent="1" source="battery" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-15" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-4" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.5;endArrow=block;endFill=1;" target="JIawFKVB7-rXlWrrBtZz-10">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-load-pub" edge="1" parent="1" source="load" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#3B6D11;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-16" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-3" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#3B6D11;strokeWidth=1.5;endArrow=block;endFill=1;" target="JIawFKVB7-rXlWrrBtZz-10">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-broker-engine" edge="1" parent="1" source="broker" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;strokeWidth=1.2;fontColor=#993C1D;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;exitX=0.3;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="engine" value="PUBLISH cmd">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-17" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-10" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;strokeWidth=1.2;fontColor=#993C1D;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;exitX=0.3;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="JIawFKVB7-rXlWrrBtZz-5" value="PUBLISH cmd">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-broker-battery" edge="1" parent="1" source="broker" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.2;fontColor=#185FA5;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;exitX=0.2;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="battery" value="PUBLISH cmd">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-18" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-10" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.2;fontColor=#185FA5;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;exitX=0.2;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="JIawFKVB7-rXlWrrBtZz-4" value="PUBLISH cmd">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="510" y="480" />
-              <mxPoint x="510" y="450" />
-              <mxPoint x="565" y="450" />
+              <mxPoint x="545.5548095703125" y="599.792236328125" />
+              <mxPoint x="545.5548095703125" y="569.792236328125" />
+              <mxPoint x="600.5548095703125" y="569.792236328125" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-broker-cloud" edge="1" parent="1" source="broker" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=2;fontColor=#185FA5;fontSize=10;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" target="cloud" value="CoAP POST /energy/telemetry">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-19" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-10" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=2;fontColor=#185FA5;fontSize=10;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" target="JIawFKVB7-rXlWrrBtZz-21" value="CoAP POST /energy/telemetry">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="540" y="500" />
-              <mxPoint x="695" y="500" />
-              <mxPoint x="695" y="210" />
+              <mxPoint x="575.5548095703125" y="619.792236328125" />
+              <mxPoint x="730.5548095703125" y="619.792236328125" />
+              <mxPoint x="730.5548095703125" y="329.792236328125" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="e-cloud-broker" edge="1" parent="1" source="cloud" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.5;fontColor=#185FA5;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=8 4;exitX=0;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.6;entryDx=0;entryDy=0;" target="broker" value="CoAP PUT /energy/actuator/cmd">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-20" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-21" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.5;fontColor=#185FA5;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=8 4;exitX=0;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.6;entryDx=0;entryDy=0;" target="JIawFKVB7-rXlWrrBtZz-10" value="CoAP PUT /energy/actuator/cmd">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="cloud" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#DCEEFB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;align=left;verticalAlign=top;spacingLeft=14;spacingTop=12;strokeWidth=2;" value="&lt;b&gt;Cloud Application&lt;/b&gt;&lt;br&gt;&lt;br&gt;POST /energy/telemetry&lt;br&gt;→ ingest all producers + load&lt;br&gt;&lt;br&gt;GET /energy/balance&lt;br&gt;PUT /energy/actuator/cmd&lt;br&gt;→ targets: engine, battery, solar relay,&amp;nbsp;&lt;div&gt;wind relay&lt;br&gt;&lt;br&gt;OBSERVE /energy/+/alert&lt;br&gt;→ overload / deficit alerts&lt;/div&gt;" vertex="1">
-          <mxGeometry height="300" width="250" x="850" y="90" as="geometry" />
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-21" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#DCEEFB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;align=left;verticalAlign=top;spacingLeft=14;spacingTop=12;strokeWidth=2;" value="&lt;b&gt;Cloud Application&lt;/b&gt;&lt;br&gt;&lt;br&gt;POST /energy/telemetry&lt;br&gt;→ ingest all producers + load&lt;br&gt;&lt;br&gt;GET /energy/balance&lt;br&gt;PUT /energy/actuator/cmd&lt;br&gt;→ targets: engine, battery, solar relay,&amp;nbsp;&lt;div&gt;wind relay&lt;br&gt;&lt;br&gt;OBSERVE /energy/+/alert&lt;br&gt;→ overload / deficit alerts&lt;/div&gt;" vertex="1">
+          <mxGeometry height="300" width="250" x="885.5548095703125" y="209.792236328125" as="geometry" />
         </mxCell>
-        <mxCell id="dashboard" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#444441;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Dashboard / Analytics&lt;/b&gt;&lt;br/&gt;production vs load · KPIs · forecasting" vertex="1">
-          <mxGeometry height="60" width="240" x="855" y="430" as="geometry" />
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-22" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#444441;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Dashboard / Analytics&lt;/b&gt;&lt;br/&gt;production vs load · KPIs · forecasting" vertex="1">
+          <mxGeometry height="60" width="240" x="890.5548095703125" y="549.792236328125" as="geometry" />
         </mxCell>
-        <mxCell id="e-cloud-dash" edge="1" parent="1" source="cloud" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#5F5E5A;strokeWidth=1;endArrow=block;endFill=0;" target="dashboard">
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-23" edge="1" parent="1" source="JIawFKVB7-rXlWrrBtZz-21" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#5F5E5A;strokeWidth=1;endArrow=block;endFill=0;" target="JIawFKVB7-rXlWrrBtZz-22">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="payloads" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#444441;fontSize=10;align=left;verticalAlign=middle;spacingLeft=14;spacingTop=6;" value="&lt;b&gt;Payload examples&lt;/b&gt;&lt;br&gt;MQTT  energy/solar/1/telemetry   →  {&quot;W&quot;:1240, &quot;V&quot;:48.2, &quot;I&quot;:25.8, &quot;irr&quot;:820, &quot;t&quot;:38.1, &quot;ts&quot;:1747734000}&lt;br&gt;MQTT  energy/load/1/telemetry    →  {&quot;W&quot;:3400, &quot;ts&quot;:1747734000}&lt;br&gt;CoAP  POST /energy/telemetry     →  CBOR {src:&quot;load/1&quot;, W:3400, ts:1747734000}&lt;br&gt;CoAP  PUT  /energy/actuator/cmd  →  CBOR {target:&quot;engine/1&quot;, action:&quot;start&quot;, setpoint_W:2000}&lt;div&gt;MQTT  energy/solar/1/cmd  →  {&quot;relay&quot;:&quot;off&quot;, &quot;reason&quot;:&quot;battery_full&quot;, &quot;ts&quot;:...}&lt;/div&gt;" vertex="1">
-          <mxGeometry height="100" width="1180" x="40" y="750" as="geometry" />
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-24" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#444441;fontSize=10;align=left;verticalAlign=middle;spacingLeft=14;spacingTop=6;" value="&lt;b&gt;Payload examples&lt;/b&gt;&lt;br&gt;MQTT  energy/solar/1/telemetry   →  {&quot;W&quot;:1240, &quot;V&quot;:48.2, &quot;I&quot;:25.8, &quot;irr&quot;:820, &quot;t&quot;:38.1, &quot;ts&quot;:1747734000}&lt;br&gt;MQTT  energy/load/1/telemetry    →  {&quot;W&quot;:3400, &quot;ts&quot;:1747734000}&lt;br&gt;CoAP  POST /energy/telemetry     →  CBOR {src:&quot;load/1&quot;, W:3400, ts:1747734000}&lt;br&gt;CoAP  PUT  /energy/actuator/cmd  →  CBOR {target:&quot;engine/1&quot;, action:&quot;start&quot;, setpoint_W:2000}&lt;div&gt;MQTT  energy/solar/1/cmd  →  {&quot;relay&quot;:&quot;off&quot;, &quot;reason&quot;:&quot;battery_full&quot;, &quot;ts&quot;:...}&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="1180" x="75.5548095703125" y="869.792236328125" as="geometry" />
         </mxCell>
-        <mxCell id="legend" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#B4B2A9;fontColor=#5F5E5A;fontSize=10;align=left;verticalAlign=middle;spacingLeft=14;spacingTop=4;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br/&gt;━━  MQTT PUBLISH telemetry (sensor data upstream)&lt;br/&gt;┄┄  MQTT PUBLISH cmd / CoAP PUT (commands downstream to actuators)&lt;br/&gt;QoS 1 = at least once (telemetry) · QoS 2 = exactly once (battery cmd) · CBOR = compact binary payload" vertex="1">
-          <mxGeometry height="70" width="1180" x="40" y="870" as="geometry" />
+        <mxCell id="JIawFKVB7-rXlWrrBtZz-25" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#B4B2A9;fontColor=#5F5E5A;fontSize=10;align=left;verticalAlign=middle;spacingLeft=14;spacingTop=4;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br/&gt;━━  MQTT PUBLISH telemetry (sensor data upstream)&lt;br/&gt;┄┄  MQTT PUBLISH cmd / CoAP PUT (commands downstream to actuators)&lt;br/&gt;QoS 1 = at least once (telemetry) · QoS 2 = exactly once (battery cmd) · CBOR = compact binary payload" vertex="1">
+          <mxGeometry height="70" width="1180" x="75.5548095703125" y="989.792236328125" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
