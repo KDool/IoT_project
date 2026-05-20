@@ -1,0 +1,94 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="qzBoE1i7hIZLwkol1Z3T" name="Pagina-1">
+    <mxGraphModel dx="979" dy="587" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="zone-mqtt" parent="1" style="html=1;swimlane;startSize=30;fillColor=#FFF8E7;strokeColor=#BA7517;fontColor=#854F0B;fontSize=13;fontStyle=1;dashed=1;dashPattern=8 4;rounded=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;" value="MQTT-SN (Zigbee / LoRa)  +  MQTT (TCP/IP)" vertex="1">
+          <mxGeometry height="680" width="740" x="30" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="load" parent="zone-mqtt" style="html=1;rounded=1;arcSize=8;fillColor=#EAF3DE;strokeColor=#3B6D11;fontColor=#27500A;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Variable Load (aggregated consumers)&lt;/b&gt;&lt;br&gt;PUBLISH energy/load/1/telemetry&lt;br&gt;Watt&lt;div&gt;QoS 1 · retain false&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="240" x="210" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="battery" parent="zone-mqtt" style="html=1;rounded=1;arcSize=8;fillColor=#DCEEFB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Battery + BMS&lt;/b&gt;&lt;br/&gt;PUBLISH energy/battery/1/status&lt;br/&gt;SUBSCRIBE energy/battery/1/cmd&lt;br/&gt;QoS 2 · retain true" vertex="1">
+          <mxGeometry height="80" width="190" x="440" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="engine" parent="zone-mqtt" style="html=1;rounded=1;arcSize=8;fillColor=#FAECE7;strokeColor=#993C1D;fontColor=#712B13;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Combustion Engine&lt;/b&gt;&lt;br/&gt;PUBLISH energy/engine/1/telemetry&lt;br/&gt;SUBSCRIBE energy/engine/1/cmd&lt;br/&gt;QoS 1" vertex="1">
+          <mxGeometry height="80" width="190" x="10" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="wind" parent="zone-mqtt" style="html=1;rounded=1;arcSize=8;fillColor=#D6F5EC;strokeColor=#0F6E56;fontColor=#085041;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Wind Turbine&lt;/b&gt;&lt;br&gt;PUBLISH energy/wind/1/telemetry&lt;div&gt;&lt;span style=&quot;background-color: transparent; font-family: var(--font-mono); white-space: pre-wrap; color: rgb(20, 24, 31);&quot;&gt;SUBSCRIBE energy/wind/1/cmd  &lt;/span&gt;&lt;p class=&quot;font-claude-response-body break-words whitespace-normal leading-[1.7]&quot;&gt;&lt;/p&gt;&lt;div&gt;QoS 1 · retain false&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="190" x="460" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-coap" parent="1" style="html=1;swimlane;startSize=30;fillColor=#E6F1FB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=13;fontStyle=1;dashed=1;dashPattern=8 4;rounded=1;arcSize=4;verticalAlign=top;align=left;spacingLeft=10;" value="CoAP (UDP / DTLS)" vertex="1">
+          <mxGeometry height="680" width="400" x="820" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="solar1" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FFF3CD;strokeColor=#BA7517;fontColor=#633806;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Solar Panel 1&lt;/b&gt;&lt;br&gt;PUBLISH energy/solar/1/telemetry&lt;div&gt;SUBSCRIBE energy/solar/1/cmd&lt;br&gt;QoS 1 · retain false&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="190" x="70" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="solar2" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#FFF3CD;strokeColor=#BA7517;fontColor=#633806;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Solar Panel 2&lt;/b&gt;&lt;br&gt;PUBLISH energy/solar/2/telemetry&lt;div&gt;SUBSCRIBE energy/solar/2/cmd&lt;br&gt;QoS 1 · retain false&lt;/div&gt;" vertex="1">
+          <mxGeometry height="80" width="190" x="280" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="broker" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#EEEDFE;strokeColor=#534AB7;fontColor=#3C3489;fontSize=11;align=center;verticalAlign=middle;strokeWidth=2;" value="&lt;b&gt;Border Router · MQTT Broker&lt;/b&gt;&lt;br/&gt;SUBSCRIBE energy/#&lt;br/&gt;Load balancing logic · QoS bridge&lt;br/&gt;MQTT-SN ↔ MQTT · MQTT → CoAP gateway" vertex="1">
+          <mxGeometry height="90" width="340" x="200" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="e-solar1" edge="1" parent="1" source="solar1" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#BA7517;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-solar2" edge="1" parent="1" source="solar2" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#BA7517;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-wind" edge="1" parent="1" source="wind" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#0F6E56;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-engine-pub" edge="1" parent="1" source="engine" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-battery-pub" edge="1" parent="1" source="battery" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-load-pub" edge="1" parent="1" source="load" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#3B6D11;strokeWidth=1.5;endArrow=block;endFill=1;" target="broker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-broker-engine" edge="1" parent="1" source="broker" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#993C1D;strokeWidth=1.2;fontColor=#993C1D;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;exitX=0.3;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="engine" value="PUBLISH cmd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-broker-battery" edge="1" parent="1" source="broker" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.2;fontColor=#185FA5;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;exitX=0.2;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="battery" value="PUBLISH cmd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="480" />
+              <mxPoint x="510" y="450" />
+              <mxPoint x="565" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-broker-cloud" edge="1" parent="1" source="broker" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=2;fontColor=#185FA5;fontSize=10;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" target="cloud" value="CoAP POST /energy/telemetry">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="540" y="500" />
+              <mxPoint x="695" y="500" />
+              <mxPoint x="695" y="210" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-cloud-broker" edge="1" parent="1" source="cloud" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#185FA5;strokeWidth=1.5;fontColor=#185FA5;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=8 4;exitX=0;exitY=0.6;exitDx=0;exitDy=0;entryX=1;entryY=0.6;entryDx=0;entryDy=0;" target="broker" value="CoAP PUT /energy/actuator/cmd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cloud" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#DCEEFB;strokeColor=#185FA5;fontColor=#0C447C;fontSize=11;align=left;verticalAlign=top;spacingLeft=14;spacingTop=12;strokeWidth=2;" value="&lt;b&gt;Cloud Application&lt;/b&gt;&lt;br&gt;&lt;br&gt;POST /energy/telemetry&lt;br&gt;→ ingest all producers + load&lt;br&gt;&lt;br&gt;GET /energy/balance&lt;br&gt;PUT /energy/actuator/cmd&lt;br&gt;→ targets: engine, battery, solar relay,&amp;nbsp;&lt;div&gt;wind relay&lt;br&gt;&lt;br&gt;OBSERVE /energy/+/alert&lt;br&gt;→ overload / deficit alerts&lt;/div&gt;" vertex="1">
+          <mxGeometry height="300" width="250" x="850" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard" parent="1" style="html=1;rounded=1;arcSize=8;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#444441;fontSize=11;align=center;verticalAlign=middle;" value="&lt;b&gt;Dashboard / Analytics&lt;/b&gt;&lt;br/&gt;production vs load · KPIs · forecasting" vertex="1">
+          <mxGeometry height="60" width="240" x="855" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="e-cloud-dash" edge="1" parent="1" source="cloud" style="html=1;edgeStyle=orthogonalEdgeStyle;strokeColor=#5F5E5A;strokeWidth=1;endArrow=block;endFill=0;" target="dashboard">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="payloads" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#F1EFE8;strokeColor=#5F5E5A;fontColor=#444441;fontSize=10;align=left;verticalAlign=middle;spacingLeft=14;spacingTop=6;" value="&lt;b&gt;Payload examples&lt;/b&gt;&lt;br&gt;MQTT  energy/solar/1/telemetry   →  {&quot;W&quot;:1240, &quot;V&quot;:48.2, &quot;I&quot;:25.8, &quot;irr&quot;:820, &quot;t&quot;:38.1, &quot;ts&quot;:1747734000}&lt;br&gt;MQTT  energy/load/1/telemetry    →  {&quot;W&quot;:3400, &quot;ts&quot;:1747734000}&lt;br&gt;CoAP  POST /energy/telemetry     →  CBOR {src:&quot;load/1&quot;, W:3400, ts:1747734000}&lt;br&gt;CoAP  PUT  /energy/actuator/cmd  →  CBOR {target:&quot;engine/1&quot;, action:&quot;start&quot;, setpoint_W:2000}&lt;div&gt;MQTT  energy/solar/1/cmd  →  {&quot;relay&quot;:&quot;off&quot;, &quot;reason&quot;:&quot;battery_full&quot;, &quot;ts&quot;:...}&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="1180" x="40" y="750" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" parent="1" style="html=1;rounded=1;arcSize=6;fillColor=#FFFFFF;strokeColor=#B4B2A9;fontColor=#5F5E5A;fontSize=10;align=left;verticalAlign=middle;spacingLeft=14;spacingTop=4;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br/&gt;━━  MQTT PUBLISH telemetry (sensor data upstream)&lt;br/&gt;┄┄  MQTT PUBLISH cmd / CoAP PUT (commands downstream to actuators)&lt;br/&gt;QoS 1 = at least once (telemetry) · QoS 2 = exactly once (battery cmd) · CBOR = compact binary payload" vertex="1">
+          <mxGeometry height="70" width="1180" x="40" y="870" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
