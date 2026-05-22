@@ -1,2 +1,4 @@
 aiocoap
 urllib3
+paho-mqtt
+requests

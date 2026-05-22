@@ -35,9 +35,25 @@ services:
     networks:
       - iot_network
 
+  influxdb:
+    image: influxdb:2
+    container_name: iot_influxdb
+    restart: always
+    ports:
+      - "8086:8086"
+    environment:
+      INFLUXDB_DB: iot_des
+      INFLUXDB_ADMIN_USER: admin
+      INFLUXDB_ADMIN_PASSWORD: adminpassword
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    networks:
+      - iot_network
+
 volumes:
   mysql_data:
   grafana_data:
+  influxdb_data:
 
 networks:
   iot_network:
