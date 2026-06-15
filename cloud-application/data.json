@@ -1,0 +1,11 @@
+{
+  "node_id": "prod_wind_05",
+  "type": "wind",
+  "proto": "COAP",
+  "ip": "fd00::2",
+  "v": 48.2,
+  "i": 10.5,
+  "anomaly": 0,
+  "sent_ms": 1715462740500,
+  "mode": "normal"
+}

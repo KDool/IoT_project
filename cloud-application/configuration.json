@@ -1,0 +1,20 @@
+{
+  "influxdb": {
+    "url": "http://localhost:8086",
+    "token": "kQYFgXLwV4uZvEFNatrZINMYDQ3B4SNiKaiDYVduv6esUfzR881TpdD2iUe-R6KsH5S68va6ta4UIFcvS7FKRw==",
+    "org": "myorg",
+    "bucket": "iot_des",
+    "batch_size": 100,
+    "flush_interval": 1000
+  },
+  "mqtt": {
+    "broker": "localhost",
+    "port": 1883,
+    "topic": "iot/telemetry",
+    "client_id": "cloud_app_subscriber"
+  },
+  "coap": {
+    "bind_host": "::",
+    "bind_port": 5683
+  }
+}

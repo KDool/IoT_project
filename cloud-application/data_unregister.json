@@ -1,0 +1,6 @@
+{
+  "node_id": "prod_wind_05",
+  "type": "wind",
+  "proto": "CoAP",
+  "ip": "fd00::2"
+}
