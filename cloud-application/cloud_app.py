@@ -11,7 +11,7 @@ from utils.mqtt_client import configure as configure_mqtt_client, start_mqtt_thr
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ==========================================
-# 1. INFLUXDB CONFIGURATION (Optimized for stress testing)
+# INFLUXDB CONFIGURATION (Optimized for stress testing)
 # ==========================================
 # Configuration and write client are managed in utils/influxdb_connect.py
 
@@ -20,7 +20,7 @@ configure_mqtt_client(save_to_influxdb)
 
 
 # ==========================================
-# 3. CoAP SERVER MODULE (Runs with Asyncio)
+# CoAP SERVER MODULE (Runs with Asyncio)
 # ==========================================
 
 
@@ -36,7 +36,7 @@ async def start_coap_server():
 
 
 # ==========================================
-# 4. RUN THE WHOLE SYSTEM
+# RUN THE WHOLE SYSTEM
 # ==========================================
 if __name__ == "__main__":
     logging.info("--- Starting IoT Cloud Application ---")
