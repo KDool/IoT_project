@@ -1,0 +1,450 @@
+/*
+ * coap-mqtt-sensor.c
+ *
+ * Unified Contiki-NG firmware that combines:
+ *
+ *  1. CoAP SERVER  — exposes actuators/leds and test/push.
+ *                    Cloud sends PUT /actuators/leds to change LED color.
+ *
+ *  2. CoAP CLIENT  — on startup, POSTs a registration message to the cloud
+ *                    app's /register endpoint (sends own IPv6 address).
+ *                    Cloud then subscribes (Observe) back to test/push.
+ *
+ *  3. MQTT CLIENT  — connects to the MQTT broker, publishes telemetry JSON
+ *                    (matching data.json schema) to "iot/telemetry" every 5 s.
+ *                    Subscribes to "iot/cmd/<node_id>" for cloud commands.
+ *
+ * Three Contiki processes run concurrently:
+ *   coap_server_process   — permanent CoAP server
+ *   coap_register_process — one-shot CoAP POST to cloud /register
+ *   mqtt_sensor_process   — MQTT connect + publish loop
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "contiki.h"
+#include "contiki-net.h"
+
+/* CoAP */
+#include "coap-engine.h"
+#include "coap-blocking-api.h"
+
+/* MQTT */
+#include "mqtt.h"
+#include "mqtt-prop.h"
+
+/* Network helpers */
+#include "net/routing/routing.h"
+#include "net/ipv6/uip.h"
+#include "net/ipv6/uip-ds6.h"
+#include "net/ipv6/uiplib.h"
+#include "net/ipv6/uip-icmp6.h"
+#include "net/ipv6/sicslowpan.h"
+
+/* Timers */
+#include "sys/etimer.h"
+#include "sys/ctimer.h"
+
+/* Hardware */
+#include "dev/leds.h"
+#include "lib/sensors.h"
+
+#if PLATFORM_SUPPORTS_BUTTON_HAL
+#include "dev/button-hal.h"
+#else
+#include "dev/button-sensor.h"
+#endif
+
+#include "sys/log.h"
+#define LOG_MODULE "Sensor"
+#define LOG_LEVEL  LOG_LEVEL_INFO
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CONFIGURATION
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Cloud CoAP endpoint – overridable via project-conf.h */
+#ifndef CLOUD_COAP_EP
+#define CLOUD_COAP_EP "coap://[fd00::1]:5683"
+#endif
+#define CLOUD_REGISTER_PATH "register"
+
+/* MQTT broker IPv6 – overridable via project-conf.h */
+#ifndef MQTT_CLIENT_CONF_BROKER_IP_ADDR
+#define MQTT_CLIENT_CONF_BROKER_IP_ADDR "fd00::1"
+#endif
+#define MQTT_BROKER_PORT 1883
+
+/* Topics */
+#ifndef MQTT_CLIENT_CONF_SENSOR_PUB_TOPIC
+#define MQTT_CLIENT_CONF_SENSOR_PUB_TOPIC "iot/telemetry"
+#endif
+#ifndef MQTT_CLIENT_CONF_SENSOR_SUB_TOPIC
+#define MQTT_CLIENT_CONF_SENSOR_SUB_TOPIC "iot/cmd/%s"
+#endif
+#define SENSOR_PUB_TOPIC  MQTT_CLIENT_CONF_SENSOR_PUB_TOPIC
+#define SENSOR_SUB_TOPIC  MQTT_CLIENT_CONF_SENSOR_SUB_TOPIC
+
+/* Timing */
+#define REGISTER_DELAY       (15 * CLOCK_SECOND) /* wait for RPL to converge */
+#define MQTT_PUBLISH_INTERVAL (5 * CLOCK_SECOND)
+#define MQTT_RECONNECT_DELAY  (5 * CLOCK_SECOND)
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CoAP RESOURCES  (compiled from ./resources/)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+extern coap_resource_t res_leds;    /* PUT /actuators/leds?color=r|g|b  mode=on|off */
+extern coap_resource_t res_push;    /* GET /test/push  (observable, periodic 5 s)   */
+#if PLATFORM_HAS_LEDS
+extern coap_resource_t res_toggle;
+#endif
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SHARED STATE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+static char node_ip_str[42];   /* own global IPv6 address as string */
+static char node_id[32];       /* e.g.  "prod_wind_a1b2"            */
+
+/* CoAP registration */
+static coap_endpoint_t cloud_ep;
+static coap_message_t  reg_request[1];
+
+/* MQTT */
+static struct mqtt_connection mqtt_conn;
+static char   mqtt_sub_topic[64];
+static char   mqtt_app_buf[256];
+static uint8_t mqtt_state;
+static bool    mqtt_subscribed;   /* set on MQTT_EVENT_SUBACK */
+static uint8_t connect_attempts;  /* counts CONNECTING timer ticks */
+
+#define MQTT_STATE_INIT        0
+#define MQTT_STATE_CONNECTING  1
+#define MQTT_STATE_CONNECTED   2
+#define MQTT_STATE_DISCONNECTED 4
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PROCESS DECLARATIONS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+PROCESS(coap_server_process,   "CoAP Server");
+PROCESS(coap_register_process, "CoAP Register to Cloud");
+PROCESS(mqtt_sensor_process,   "MQTT Sensor");
+
+AUTOSTART_PROCESSES(&coap_server_process,
+                    &coap_register_process,
+                    &mqtt_sensor_process);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HELPERS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+static bool have_connectivity(void)
+{
+  return (uip_ds6_get_global(ADDR_PREFERRED) != NULL &&
+          uip_ds6_defrt_choose() != NULL);
+}
+
+static void get_node_ip(void)
+{
+  uip_ds6_addr_t *addr = uip_ds6_get_global(ADDR_PREFERRED);
+  if(addr == NULL) {
+    addr = uip_ds6_get_link_local(ADDR_PREFERRED);
+  }
+  if(addr != NULL) {
+    uiplib_ipaddr_snprint(node_ip_str, sizeof(node_ip_str), &addr->ipaddr);
+  } else {
+    snprintf(node_ip_str, sizeof(node_ip_str), "unknown");
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PROCESS 1: CoAP SERVER
+ * Activates all CoAP resources and waits for incoming requests from the cloud.
+ * Cloud sends:  PUT coap://<node>/actuators/leds?color=g  body: mode=on
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+PROCESS_THREAD(coap_server_process, ev, data)
+{
+  PROCESS_BEGIN();
+  PROCESS_PAUSE();
+
+  LOG_INFO("CoAP server starting — activating resources\n");
+
+  coap_activate_resource(&res_leds,   "actuators/leds");
+  coap_activate_resource(&res_push,   "test/push");
+#if PLATFORM_HAS_LEDS
+  coap_activate_resource(&res_toggle, "actuators/toggle");
+#endif
+
+  LOG_INFO("CoAP server ready\n");
+  LOG_INFO("  actuators/leds  — PUT ?color=r|g|b  body: mode=on|off\n");
+  LOG_INFO("  test/push       — GET Observe (cloud subscribes here)\n");
+
+  while(1) {
+    PROCESS_WAIT_EVENT();
+#if PLATFORM_HAS_BUTTON
+#if PLATFORM_SUPPORTS_BUTTON_HAL
+    if(ev == button_hal_release_event) {
+#else
+    if(ev == sensors_event && data == &button_sensor) {
+#endif
+      res_push.trigger();   /* manually fire push notification on button press */
+    }
+#endif
+  }
+
+  PROCESS_END();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PROCESS 2: CoAP REGISTER  (one-shot client)
+ * Waits for RPL to converge, then POSTs own IP to cloud /register.
+ * Cloud stores node info and subscribes (Observe) to test/push.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+static void coap_reg_response_handler(coap_message_t *response)
+{
+  if(response == NULL) {
+    LOG_WARN("[CoAP Register] Timed out — cloud did not reply\n");
+    return;
+  }
+  const uint8_t *pl;
+  int len = coap_get_payload(response, &pl);
+  LOG_INFO("[CoAP Register] Cloud replied: %.*s\n", len, (char *)pl);
+}
+
+PROCESS_THREAD(coap_register_process, ev, data)
+{
+  static struct etimer t;
+  PROCESS_BEGIN();
+
+  /* Wait for RPL to assign a global address — poll every 5 s */
+  do {
+    etimer_set(&t, REGISTER_DELAY);
+    PROCESS_WAIT_UNTIL(etimer_expired(&t));
+  } while(!have_connectivity());
+
+  get_node_ip();
+  LOG_INFO("[CoAP Register] Node IP: %s\n", node_ip_str);
+
+  /* Build JSON payload matching cloud's RegisterResource schema */
+  static char payload[160];
+  snprintf(payload, sizeof(payload),
+    "{\"node_id\":\"%s\",\"ip\":\"%s\",\"port\":5683,"
+    "\"type\":\"coap-mqtt-sensor\",\"proto\":\"coap\"}",
+    node_id, node_ip_str);
+
+  coap_endpoint_parse(CLOUD_COAP_EP, strlen(CLOUD_COAP_EP), &cloud_ep);
+
+  coap_init_message(reg_request, COAP_TYPE_CON, COAP_POST, 0);
+  coap_set_header_uri_path(reg_request, CLOUD_REGISTER_PATH);
+  coap_set_header_content_format(reg_request, APPLICATION_JSON);
+  coap_set_payload(reg_request, (uint8_t *)payload, strlen(payload));
+
+  LOG_INFO("[CoAP Register] Sending registration → " CLOUD_COAP_EP "\n");
+  LOG_INFO("[CoAP Register] Payload: %s\n", payload);
+
+  COAP_BLOCKING_REQUEST(&cloud_ep, reg_request, coap_reg_response_handler);
+
+  LOG_INFO("[CoAP Register] Done. Cloud will subscribe back via Observe.\n");
+
+  PROCESS_END();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PROCESS 3: MQTT SENSOR
+ * Connects to the MQTT broker and publishes telemetry JSON every 5 s.
+ * Subscribes to iot/cmd/<node_id> for incoming commands from cloud.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+static void mqtt_event_handler(struct mqtt_connection *m,
+                               mqtt_event_t event, void *data)
+{
+  switch(event) {
+    case MQTT_EVENT_CONNECTED:
+      LOG_INFO("[MQTT] Connected to broker\n");
+      mqtt_state = MQTT_STATE_CONNECTED;
+      mqtt_subscribed = true;   /* skip subscribe — CoAP handles LED commands */
+      connect_attempts = 0;
+      process_poll(&mqtt_sensor_process);
+      break;
+
+    case MQTT_EVENT_PUBLISH: {
+      struct mqtt_message *msg = (struct mqtt_message *)data;
+      LOG_INFO("[MQTT] Command received on '%s': %.*s\n",
+               msg->topic,
+               msg->payload_chunk_length,
+               (char *)msg->payload_chunk);
+      /*
+       * Cloud can send LED commands via MQTT as an alternative to CoAP PUT.
+       * Payload examples: "led:g:on"  "led:r:off"  "led:b:on"
+       */
+      if(strncmp((char *)msg->payload_chunk, "led:", 4) == 0 &&
+         msg->payload_chunk_length >= 8) {
+        char color = ((char *)msg->payload_chunk)[4];  /* r / g / b */
+        const char *mode_str = (char *)msg->payload_chunk + 6; /* on / off */
+        uint8_t led = 0;
+        if(color == 'r') led = LEDS_RED;
+        else if(color == 'g') led = LEDS_GREEN;
+#ifdef LEDS_CONF_BLUE
+        else if(color == 'b') led = LEDS_BLUE;    /* real hardware */
+#else
+        else if(color == 'b') led = LEDS_YELLOW;  /* Cooja: no blue, use yellow */
+#endif
+
+        if(led && strncmp(mode_str, "on", 2) == 0) {
+          leds_on(led);
+          LOG_INFO("[MQTT] LED 0x%02x ON\n", led);
+        } else if(led && strncmp(mode_str, "off", 3) == 0) {
+          leds_off(led);
+          LOG_INFO("[MQTT] LED 0x%02x OFF\n", led);
+        }
+      }
+      break;
+    }
+
+    case MQTT_EVENT_DISCONNECTED:
+      LOG_WARN("[MQTT] Disconnected\n");
+      mqtt_state = MQTT_STATE_DISCONNECTED;
+      process_poll(&mqtt_sensor_process);
+      break;
+
+    case MQTT_EVENT_SUBACK:
+      LOG_INFO("[MQTT] SUBACK received — subscription confirmed, ready to publish\n");
+      mqtt_subscribed = true;
+      process_poll(&mqtt_sensor_process);
+      break;
+
+    case MQTT_EVENT_PUBACK:
+      break;
+
+    default:
+      break;
+  }
+}
+
+static void publish_telemetry(void)
+{
+  get_node_ip();
+  unsigned long sent_ms = clock_seconds() * 1000UL;
+
+  /* Simulate voltage (48–50 V) and current (10–11 A) sensor readings */
+  int v_int  = 48 + (random_rand() % 3);
+  int v_frac = random_rand() % 10;
+  int i_int  = 10 + (random_rand() % 2);
+  int i_frac = random_rand() % 10;
+
+  snprintf(mqtt_app_buf, sizeof(mqtt_app_buf),
+    "{"
+    "\"node_id\":\"%s\","
+    "\"type\":\"wind\","
+    "\"proto\":\"MQTT\","
+    "\"ip\":\"%s\","
+    "\"v\":%d.%d,"
+    "\"i\":%d.%d,"
+    "\"anomaly\":0,"
+    "\"sent_ms\":%lu,"
+    "\"mode\":\"normal\""
+    "}",
+    node_id, node_ip_str,
+    v_int, v_frac,
+    i_int, i_frac,
+    sent_ms);
+
+  LOG_INFO("[MQTT] Publishing: %s\n", mqtt_app_buf);
+
+  mqtt_status_t pub_ret = mqtt_publish(&mqtt_conn, NULL,
+               SENSOR_PUB_TOPIC,
+               (uint8_t *)mqtt_app_buf, strlen(mqtt_app_buf),
+               MQTT_QOS_LEVEL_0, MQTT_RETAIN_OFF);
+
+  if(pub_ret == MQTT_STATUS_OK) {
+    LOG_INFO("[MQTT] Publish OK → topic: %s  len: %u bytes\n",
+             SENSOR_PUB_TOPIC, (unsigned)strlen(mqtt_app_buf));
+  } else {
+    LOG_WARN("[MQTT] Publish FAILED (status=%d) → topic: %s  len: %u bytes\n",
+             (int)pub_ret, SENSOR_PUB_TOPIC, (unsigned)strlen(mqtt_app_buf));
+  }
+}
+
+PROCESS_THREAD(mqtt_sensor_process, ev, data)
+{
+  static struct etimer pub_timer;
+  static char broker_ip[] = MQTT_CLIENT_CONF_BROKER_IP_ADDR;
+
+  PROCESS_BEGIN();
+
+  /* Build node_id from link-layer address bytes */
+  snprintf(node_id, sizeof(node_id), "prod_wind_%02x%02x",
+           linkaddr_node_addr.u8[6], linkaddr_node_addr.u8[7]);
+  snprintf(mqtt_sub_topic, sizeof(mqtt_sub_topic), SENSOR_SUB_TOPIC, node_id);
+
+  LOG_INFO("[MQTT] Node ID: %s\n", node_id);
+  LOG_INFO("[MQTT] Pub topic: %s\n", SENSOR_PUB_TOPIC);
+  LOG_INFO("[MQTT] Sub topic: %s\n", mqtt_sub_topic);
+
+  mqtt_state = MQTT_STATE_INIT;
+
+  /* Register MQTT client */
+  mqtt_register(&mqtt_conn, &mqtt_sensor_process,
+                node_id, mqtt_event_handler,
+                256 /* max segment size — must exceed largest MQTT packet */);
+
+  etimer_set(&pub_timer, MQTT_RECONNECT_DELAY);
+
+  while(1) {
+    PROCESS_YIELD();
+
+    if(etimer_expired(&pub_timer)) {
+      if(!have_connectivity()) {
+        /* Network not ready — check again soon */
+        etimer_reset(&pub_timer);
+        continue;
+      }
+
+      if(mqtt_state == MQTT_STATE_INIT ||
+         mqtt_state == MQTT_STATE_DISCONNECTED) {
+        /* Connect to broker */
+        connect_attempts = 0;
+        mqtt_connect(&mqtt_conn, broker_ip, MQTT_BROKER_PORT,
+                     MQTT_PUBLISH_INTERVAL * 3 / CLOCK_SECOND /* keep-alive */,
+                     1 /* clean_session */);
+        mqtt_state = MQTT_STATE_CONNECTING;
+        LOG_INFO("[MQTT] Connecting to broker %s:%d\n", broker_ip, MQTT_BROKER_PORT);
+
+      } else if(mqtt_state == MQTT_STATE_CONNECTING) {
+        connect_attempts++;
+        if(connect_attempts >= 4) {
+          /* CONNACK never arrived — force disconnect and retry */
+          LOG_WARN("[MQTT] Connection timeout after %u attempts, retrying...\n",
+                   (unsigned)connect_attempts);
+          mqtt_disconnect(&mqtt_conn);
+          mqtt_state = MQTT_STATE_DISCONNECTED;
+        } else {
+          LOG_INFO("[MQTT] Still connecting, waiting... (attempt %u/4)\n",
+                   (unsigned)connect_attempts);
+        }
+
+      } else if(mqtt_state == MQTT_STATE_CONNECTED) {
+        if(!mqtt_ready(&mqtt_conn)) {
+          /* Stack not ready yet — retry in 1s */
+          LOG_INFO("[MQTT] Connected but stack not ready, retrying...\n");
+          etimer_set(&pub_timer, CLOCK_SECOND);
+          continue;
+        }
+        /* Publish telemetry */
+        publish_telemetry();
+        etimer_set(&pub_timer, MQTT_PUBLISH_INTERVAL);
+        continue;
+      }
+
+      etimer_set(&pub_timer, MQTT_RECONNECT_DELAY);
+    }
+  }
+
+  PROCESS_END();
+}

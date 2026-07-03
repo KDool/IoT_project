@@ -16,5 +16,9 @@
   "coap": {
     "bind_host": "::",
     "bind_port": 5683
+  },
+  "sensor_node": {
+    "address": "fd00::202:2:2:2",
+    "comment": "IPv6 address of the Contiki-NG node running coap-example-server (Cooja border-router assigns this)"
   }
 }
