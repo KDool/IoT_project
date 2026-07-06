@@ -154,11 +154,83 @@ class LedControlResource(resource.Resource):
             )
 
 
+class StatusControlResource(resource.Resource):
+    """
+    Cloud-side device status control endpoint.
+
+    PUT/POST coap://<cloud>/actuators/status
+    Payload (JSON): {"node_id": "<id>", "status": "on|off"}
+
+    The cloud looks up the node in the registry by node_id,
+    then forwards PUT coap://<sensor>/actuators/status  body: on|off.
+    """
+
+    async def render_put(self, request):
+        return await self._handle(request)
+
+    async def render_post(self, request):
+        return await self._handle(request)
+
+    async def _handle(self, request):
+        try:
+            payload = json.loads(request.payload.decode("utf-8"))
+        except Exception:
+            return aiocoap.Message(
+                code=aiocoap.BAD_REQUEST, payload=b"Invalid JSON payload"
+            )
+
+        node_id = payload.get("node_id")
+        status  = payload.get("status")
+
+        if not node_id or not status:
+            return aiocoap.Message(
+                code=aiocoap.BAD_REQUEST,
+                payload=b"Missing field(s). Required: node_id, status"
+            )
+
+        if status.lower() not in ("on", "off"):
+            return aiocoap.Message(
+                code=aiocoap.BAD_REQUEST,
+                payload=b"Invalid status value. Use: on / off"
+            )
+
+        node = node_registry.get_node_by_id(node_id)
+        if node is None:
+            logging.warning(f"[Status] Unknown node_id '{node_id}'")
+            return aiocoap.Message(
+                code=aiocoap.NOT_FOUND,
+                payload=f"Node '{node_id}' not registered".encode()
+            )
+
+        ip   = node["ip"]
+        port = int(node.get("port", 5683))
+
+        logging.info(
+            f"[Status] Forwarding command → node '{node_id}' "
+            f"({ip}:{port})  status={status}"
+        )
+
+        try:
+            reply = await coap_client.set_status(ip, port, status)
+            return aiocoap.Message(
+                code=aiocoap.CHANGED, payload=reply.encode()
+            )
+        except ValueError as e:
+            return aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=str(e).encode())
+        except Exception as e:
+            logging.error(f"[Status] Failed to reach node '{node_id}': {e}")
+            return aiocoap.Message(
+                code=aiocoap.SERVICE_UNAVAILABLE,
+                payload=f"Could not reach node: {e}".encode()
+            )
+
+
 def create_coap_site():
     """Build the CoAP resource tree."""
     root = resource.Site()
-    root.add_resource(['telemetry'],       TelemetryResource())
-    root.add_resource(['register'],        RegisterResource())
-    root.add_resource(['unregister'],      UnregisterResource())
-    root.add_resource(['actuators', 'leds'], LedControlResource())
+    root.add_resource(['telemetry'],          TelemetryResource())
+    root.add_resource(['register'],           RegisterResource())
+    root.add_resource(['unregister'],         UnregisterResource())
+    root.add_resource(['actuators', 'leds'],  LedControlResource())
+    root.add_resource(['actuators', 'status'], StatusControlResource())
     return root

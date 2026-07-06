@@ -71,6 +71,26 @@
 #endif
 #define CLOUD_REGISTER_PATH "register"
 
+/* Node type — used in node_id prefix and MQTT "type" field.
+ * Set to "solar", "wind", etc. via project-conf.h or make NODE_TYPE=... */
+#ifndef NODE_TYPE
+#define NODE_TYPE "wind"
+#endif
+
+/* Sensor simulation ranges — overridable via project-conf.h */
+#ifndef SENSOR_V_BASE
+#define SENSOR_V_BASE  22
+#endif
+#ifndef SENSOR_V_RANGE
+#define SENSOR_V_RANGE  3
+#endif
+#ifndef SENSOR_I_BASE
+#define SENSOR_I_BASE  15
+#endif
+#ifndef SENSOR_I_RANGE
+#define SENSOR_I_RANGE  3
+#endif
+
 /* MQTT broker IPv6 – overridable via project-conf.h */
 #ifndef MQTT_CLIENT_CONF_BROKER_IP_ADDR
 #define MQTT_CLIENT_CONF_BROKER_IP_ADDR "fd00::1"
@@ -98,6 +118,7 @@
 
 extern coap_resource_t res_leds;    /* PUT /actuators/leds?color=r|g|b  mode=on|off */
 extern coap_resource_t res_push;    /* GET /test/push  (observable, periodic 5 s)   */
+extern coap_resource_t res_status;  /* GET/PUT /actuators/status  body=on|off        */
 #if PLATFORM_HAS_LEDS
 extern coap_resource_t res_toggle;
 #endif
@@ -107,7 +128,10 @@ extern coap_resource_t res_toggle;
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 static char node_ip_str[42];   /* own global IPv6 address as string */
-static char node_id[32];       /* e.g.  "prod_wind_a1b2"            */
+static char node_id[32];       /* e.g.  "prod_wind_a1b2" / "prod_solar_a1b2" */
+
+/* Device logical status — readable/writable by res-status.c via extern */
+bool device_on = true;
 
 /* CoAP registration */
 static coap_endpoint_t cloud_ep;
@@ -174,15 +198,17 @@ PROCESS_THREAD(coap_server_process, ev, data)
 
   LOG_INFO("CoAP server starting — activating resources\n");
 
-  coap_activate_resource(&res_leds,   "actuators/leds");
-  coap_activate_resource(&res_push,   "test/push");
+  coap_activate_resource(&res_leds,    "actuators/leds");
+  coap_activate_resource(&res_push,    "test/push");
+  coap_activate_resource(&res_status,  "actuators/status");
 #if PLATFORM_HAS_LEDS
-  coap_activate_resource(&res_toggle, "actuators/toggle");
+  coap_activate_resource(&res_toggle,  "actuators/toggle");
 #endif
 
   LOG_INFO("CoAP server ready\n");
-  LOG_INFO("  actuators/leds  — PUT ?color=r|g|b  body: mode=on|off\n");
-  LOG_INFO("  test/push       — GET Observe (cloud subscribes here)\n");
+  LOG_INFO("  actuators/leds   — PUT ?color=r|g|b  body: mode=on|off\n");
+  LOG_INFO("  actuators/status — GET|PUT body: on|off\n");
+  LOG_INFO("  test/push        — GET Observe (cloud subscribes here)\n");
 
   while(1) {
     PROCESS_WAIT_EVENT();
@@ -332,28 +358,37 @@ static void publish_telemetry(void)
   get_node_ip();
   unsigned long sent_ms = clock_seconds() * 1000UL;
 
-  /* Simulate voltage (48–50 V) and current (10–11 A) sensor readings */
-  int v_int  = 48 + (random_rand() % 3);
-  int v_frac = random_rand() % 10;
-  int i_int  = 10 + (random_rand() % 2);
-  int i_frac = random_rand() % 10;
+  /* Simulate voltage (48–50 V) and current (10–11 A) sensor readings.
+   * When the device is OFF, report zero for all measurements. */
+  int v_int, v_frac, i_int, i_frac;
+  if(device_on) {
+    v_int  = SENSOR_V_BASE + (random_rand() % SENSOR_V_RANGE);
+    v_frac = random_rand() % 10;
+    i_int  = SENSOR_I_BASE + (random_rand() % SENSOR_I_RANGE);
+    i_frac = random_rand() % 10;
+  } else {
+    v_int = 0; v_frac = 0;
+    i_int = 0; i_frac = 0;
+  }
 
   snprintf(mqtt_app_buf, sizeof(mqtt_app_buf),
     "{"
     "\"node_id\":\"%s\","
-    "\"type\":\"wind\","
+    "\"type\":\"" NODE_TYPE "\","
     "\"proto\":\"MQTT\","
     "\"ip\":\"%s\","
     "\"v\":%d.%d,"
     "\"i\":%d.%d,"
     "\"anomaly\":0,"
     "\"sent_ms\":%lu,"
-    "\"mode\":\"normal\""
+    "\"mode\":\"normal\","
+    "\"status\":\"%s\""
     "}",
     node_id, node_ip_str,
     v_int, v_frac,
     i_int, i_frac,
-    sent_ms);
+    sent_ms,
+    device_on ? "ON" : "OFF");
 
   LOG_INFO("[MQTT] Publishing: %s\n", mqtt_app_buf);
 
@@ -379,7 +414,7 @@ PROCESS_THREAD(mqtt_sensor_process, ev, data)
   PROCESS_BEGIN();
 
   /* Build node_id from link-layer address bytes */
-  snprintf(node_id, sizeof(node_id), "prod_wind_%02x%02x",
+  snprintf(node_id, sizeof(node_id), "prod_" NODE_TYPE "_%02x%02x",
            linkaddr_node_addr.u8[6], linkaddr_node_addr.u8[7]);
   snprintf(mqtt_sub_topic, sizeof(mqtt_sub_topic), SENSOR_SUB_TOPIC, node_id);
 

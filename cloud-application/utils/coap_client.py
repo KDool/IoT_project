@@ -121,3 +121,33 @@ async def set_led(ip: str, port: int, color: str, mode: str) -> str:
     reply    = response.payload.decode()
     logger.info(f"[CoAP Client] ← Sensor replied ({response.code}): {reply}")
     return reply
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Cloud → Sensor: Status Control
+# ──────────────────────────────────────────────────────────────────────────────
+
+async def set_status(ip: str, port: int, status: str) -> str:
+    """
+    Send PUT coap://<ip>:<port>/actuators/status  body: on|off
+    Matches the interface of res-status.c on the Contiki-NG node.
+    The sensor will update its device_on flag and reflect the new status
+    in all subsequent MQTT telemetry publishes.
+    Returns the sensor's reply string.
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
+
+    status_val = status.lower()
+    if status_val not in ("on", "off"):
+        raise ValueError(f"Invalid status '{status}'. Use: on / off")
+
+    uri     = _make_uri(ip, port, "actuators/status")
+    payload = status_val.encode()
+
+    logger.info(f"[CoAP Client] → PUT {uri}  body: {payload.decode()}")
+    request  = aiocoap.Message(code=aiocoap.PUT, uri=uri, payload=payload)
+    response = await _protocol.request(request).response
+    reply    = response.payload.decode()
+    logger.info(f"[CoAP Client] ← Sensor replied ({response.code}): {reply}")
+    return reply
