@@ -16,6 +16,7 @@
 
 #include "contiki.h"
 #include "coap-engine.h"
+#include "sys/ctimer.h"
 
 #include <string.h>
 #include <stdbool.h>
@@ -24,8 +25,16 @@
 #define LOG_MODULE "res-status"
 #define LOG_LEVEL  LOG_LEVEL_INFO
 
-/* Defined in coap-mqtt-sensor.c — shared device status flag */
+/* Defined in coap-mqtt-sensor.c — shared device state */
 extern bool device_on;
+extern bool device_starting;
+extern struct ctimer startup_timer;
+extern void startup_complete(void *ptr);
+
+/* Startup delay (seconds) — 0 means instant on, set in project-conf.h */
+#ifndef SENSOR_STARTUP_DELAY_S
+#define SENSOR_STARTUP_DELAY_S 0
+#endif
 
 /* ── Forward declarations ────────────────────────────────────────────────── */
 static void res_get_handler(coap_message_t *req, coap_message_t *resp,
@@ -48,7 +57,7 @@ static void
 res_get_handler(coap_message_t *request, coap_message_t *response,
                 uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  const char *payload = device_on ? "on" : "off";
+  const char *payload = device_on ? "on" : (device_starting ? "starting" : "off");
   coap_set_header_content_format(response, TEXT_PLAIN);
   coap_set_payload(response, (uint8_t *)payload, strlen(payload));
 }
@@ -68,15 +77,36 @@ res_put_handler(coap_message_t *request, coap_message_t *response,
   }
 
   if(len >= 3 && strncmp((const char *)payload_bytes, "off", 3) == 0) {
+    /* Cancel any pending startup — turn off immediately */
+#if SENSOR_STARTUP_DELAY_S > 0
+    ctimer_stop(&startup_timer);
+    device_starting = false;
+#endif
     device_on = false;
     LOG_INFO("[Status] Device turned OFF via CoAP PUT\n");
     coap_set_status_code(response, CHANGED_2_04);
     coap_set_payload(response, (uint8_t *)"off", 3);
   } else if(len >= 2 && strncmp((const char *)payload_bytes, "on", 2) == 0) {
+#if SENSOR_STARTUP_DELAY_S > 0
+    if(!device_on && !device_starting) {
+      device_starting = true;
+      ctimer_set(&startup_timer,
+                 (clock_time_t)SENSOR_STARTUP_DELAY_S * CLOCK_SECOND,
+                 startup_complete, NULL);
+      LOG_INFO("[Status] Startup initiated — device ON in %d s\n",
+               SENSOR_STARTUP_DELAY_S);
+      coap_set_status_code(response, CHANGED_2_04);
+      coap_set_payload(response, (uint8_t *)"starting", 8);
+    } else {
+      coap_set_status_code(response, CHANGED_2_04);
+      coap_set_payload(response, (uint8_t *)(device_on ? "on" : "starting"), device_on ? 2 : 8);
+    }
+#else
     device_on = true;
     LOG_INFO("[Status] Device turned ON via CoAP PUT\n");
     coap_set_status_code(response, CHANGED_2_04);
     coap_set_payload(response, (uint8_t *)"on", 2);
+#endif
   } else {
     coap_set_status_code(response, BAD_REQUEST_4_00);
     coap_set_payload(response, (uint8_t *)"Invalid body: use on|off", 24);

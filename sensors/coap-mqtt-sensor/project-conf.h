@@ -23,14 +23,12 @@
 /* ── MQTT ─────────────────────────────────────────────────────────────────── */
 #define UIP_CONF_TCP 1
 
-/* MQTT broker IPv6 address (same host as the cloud app) */
-#define MQTT_CLIENT_CONF_BROKER_IP_ADDR "fd00::1"
+#define MQTT_CLIENT_CONF_BROKER_IP_ADDR   "fd00::1"
+#define MQTT_CLIENT_CONF_SENSOR_PUB_TOPIC "iot/telemetry"
+#define MQTT_CLIENT_CONF_SENSOR_SUB_TOPIC "iot/cmd/%s"
 
-/* Telemetry publish topic – consumed by cloud_app.py */
-#define MQTT_CLIENT_CONF_SENSOR_PUB_TOPIC  "iot/telemetry"
-
-/* Per-device command topic – cloud sends LED commands here */
-#define MQTT_CLIENT_CONF_SENSOR_SUB_TOPIC  "iot/cmd/%s"
+/* Publish interval in seconds — tune per sensor type for traffic testing */
+#define MQTT_PUBLISH_INTERVAL_S 5
 
 /* ── Sensor simulation ranges (Wind ~400 W max) ──────────────────────────── */
 /* Voltage: V_BASE + (rand % V_RANGE)   →  22–24 V  */

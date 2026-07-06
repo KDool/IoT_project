@@ -2,9 +2,26 @@
 #define PROJECT_CONF_H_
 
 /* ── Node type ────────────────────────────────────────────────────────────── */
-/* Defines the sensor type used in node_id ("prod_solar_XXYY")
- * and in the "type" field of MQTT telemetry JSON. */
-#define NODE_TYPE "solar"
+#define NODE_TYPE "diesel"
+
+/* ── Device boot state ────────────────────────────────────────────────────── */
+/* Diesel generator is OFF by default — must be started explicitly */
+#define SENSOR_DEFAULT_ON 0
+
+/* ── Startup warm-up delay ────────────────────────────────────────────────── */
+/* After receiving "on" via CoAP, the generator takes 40 s to reach
+ * operating state.  During this window status = "STARTING", v/i = 0. */
+#define SENSOR_STARTUP_DELAY_S 40
+
+/* ── Sensor simulation ranges (Diesel 1–3.5 kW) ──────────────────────────── */
+/* Voltage: 220–230 V AC  →  V_BASE=220, V_RANGE=11               */
+#define SENSOR_V_BASE   220
+#define SENSOR_V_RANGE   11
+/* Current: 5–15 A        →  I_BASE=5,   I_RANGE=11               */
+#define SENSOR_I_BASE     5
+#define SENSOR_I_RANGE   11
+/* Min P ≈ 220 × 5  = 1100 W ≈ 1.1 kW  ✓                         */
+/* Max P ≈ 230 × 15 = 3450 W ≈ 3.5 kW  ✓                         */
 
 /* ── CoAP ─────────────────────────────────────────────────────────────────── */
 #ifndef CLOUD_COAP_EP
@@ -21,16 +38,7 @@
 #define MQTT_CLIENT_CONF_SENSOR_SUB_TOPIC "iot/cmd/%s"
 
 /* Publish interval in seconds — tune per sensor type for traffic testing */
-#define MQTT_PUBLISH_INTERVAL_S 5
-
-/* ── Sensor simulation ranges (Solar ~600 W max) ─────────────────────────── */
-/* Voltage: V_BASE + (rand % V_RANGE)   →  32–36 V  */
-#define SENSOR_V_BASE   32
-#define SENSOR_V_RANGE   5
-/* Current: I_BASE + (rand % I_RANGE)   →  15–17 A  */
-#define SENSOR_I_BASE   15
-#define SENSOR_I_RANGE   3
-/* Max P ≈ 36.9 × 17.9 ≈ 661 W  (nominal ceiling ~600 W) */
+#define MQTT_PUBLISH_INTERVAL_S 10
 
 /* ── Logging ──────────────────────────────────────────────────────────────── */
 #define LOG_LEVEL_APP LOG_LEVEL_INFO

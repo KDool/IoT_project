@@ -91,6 +91,16 @@
 #define SENSOR_I_RANGE  3
 #endif
 
+/* Device default power state — 1=ON at boot, 0=OFF at boot */
+#ifndef SENSOR_DEFAULT_ON
+#define SENSOR_DEFAULT_ON 1
+#endif
+
+/* Startup warm-up delay in seconds (0 = instant on, >0 e.g. diesel engine) */
+#ifndef SENSOR_STARTUP_DELAY_S
+#define SENSOR_STARTUP_DELAY_S 0
+#endif
+
 /* MQTT broker IPv6 – overridable via project-conf.h */
 #ifndef MQTT_CLIENT_CONF_BROKER_IP_ADDR
 #define MQTT_CLIENT_CONF_BROKER_IP_ADDR "fd00::1"
@@ -109,7 +119,10 @@
 
 /* Timing */
 #define REGISTER_DELAY       (15 * CLOCK_SECOND) /* wait for RPL to converge */
-#define MQTT_PUBLISH_INTERVAL (5 * CLOCK_SECOND)
+#ifndef MQTT_PUBLISH_INTERVAL_S
+#define MQTT_PUBLISH_INTERVAL_S 5                /* default: publish every 5 s */
+#endif
+#define MQTT_PUBLISH_INTERVAL (MQTT_PUBLISH_INTERVAL_S * CLOCK_SECOND)
 #define MQTT_RECONNECT_DELAY  (5 * CLOCK_SECOND)
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -131,7 +144,17 @@ static char node_ip_str[42];   /* own global IPv6 address as string */
 static char node_id[32];       /* e.g.  "prod_wind_a1b2" / "prod_solar_a1b2" */
 
 /* Device logical status — readable/writable by res-status.c via extern */
-bool device_on = true;
+bool device_on      = SENSOR_DEFAULT_ON;  /* true = running, false = off       */
+bool device_starting = false;             /* true during startup warm-up delay  */
+struct ctimer startup_timer;              /* fires when warm-up completes       */
+
+/* Called by ctimer after SENSOR_STARTUP_DELAY_S seconds */
+void startup_complete(void *ptr)
+{
+  device_starting = false;
+  device_on       = true;
+  LOG_INFO("[Status] Startup complete — device is now ON\n");
+}
 
 /* CoAP registration */
 static coap_endpoint_t cloud_ep;
@@ -358,8 +381,8 @@ static void publish_telemetry(void)
   get_node_ip();
   unsigned long sent_ms = clock_seconds() * 1000UL;
 
-  /* Simulate voltage (48–50 V) and current (10–11 A) sensor readings.
-   * When the device is OFF, report zero for all measurements. */
+  /* Simulate sensor readings.
+   * When the device is OFF or STARTING, report zero for all measurements. */
   int v_int, v_frac, i_int, i_frac;
   if(device_on) {
     v_int  = SENSOR_V_BASE + (random_rand() % SENSOR_V_RANGE);
@@ -388,7 +411,7 @@ static void publish_telemetry(void)
     v_int, v_frac,
     i_int, i_frac,
     sent_ms,
-    device_on ? "ON" : "OFF");
+    device_on ? "ON" : (device_starting ? "STARTING" : "OFF"));
 
   LOG_INFO("[MQTT] Publishing: %s\n", mqtt_app_buf);
 
@@ -428,7 +451,6 @@ PROCESS_THREAD(mqtt_sensor_process, ev, data)
   mqtt_register(&mqtt_conn, &mqtt_sensor_process,
                 node_id, mqtt_event_handler,
                 256 /* max segment size — must exceed largest MQTT packet */);
-
   etimer_set(&pub_timer, MQTT_RECONNECT_DELAY);
 
   while(1) {
