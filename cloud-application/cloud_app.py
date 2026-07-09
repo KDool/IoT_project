@@ -6,7 +6,7 @@ from utils.coap_resources import configure as configure_coap_resources, create_c
 from utils import coap_client, node_registry
 from utils.influxdb_connect import close_influxdb, INFLUX_BUCKET, save_to_influxdb, write_api
 from utils.mqtt_client import configure as configure_mqtt_client, start_mqtt_thread
-
+from utils import energy_state
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # ==========================================
@@ -56,14 +56,13 @@ async def start_coap_server():
 # ==========================================
 
 async def run():
-    # One shared CoAP client context for all outgoing requests
+   async def run():
     protocol = await aiocoap.Context.create_client_context()
     coap_client.set_protocol(protocol)
 
-    # Start CoAP server in background (receives sensor registrations + LED commands)
     asyncio.create_task(start_coap_server())
+    asyncio.create_task(energy_state.balance_loop())   # ← aggiunta
 
-    # Keep running indefinitely
     await asyncio.get_running_loop().create_future()
 
 
