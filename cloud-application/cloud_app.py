@@ -56,7 +56,6 @@ async def start_coap_server():
 # ==========================================
 
 async def run():
-   async def run():
     protocol = await aiocoap.Context.create_client_context()
     coap_client.set_protocol(protocol)
 
@@ -64,6 +63,7 @@ async def run():
     asyncio.create_task(energy_state.balance_loop())   # ← aggiunta
 
     await asyncio.get_running_loop().create_future()
+
 
 
 if __name__ == "__main__":
