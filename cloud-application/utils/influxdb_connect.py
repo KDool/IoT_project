@@ -72,6 +72,7 @@ def save_to_influxdb(payload, received_ms: int | None = None):
             .field("sent_at_ms", int(payload.get("sent_ms", 0)))
             .field("delay_ms", float(delay_ms))
             .field("adaptive_mode", payload.get("mode", "normal"))
+            .field("status", payload.get("status", "UNKNOWN"))
         )
 
         if "soc" in payload:
