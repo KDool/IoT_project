@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import paho.mqtt.client as mqtt
 from utils.config import config
@@ -34,11 +35,13 @@ def on_connect(client, userdata, flags, rc):
 
 
 def on_message(client, userdata, msg):
+    # Capture arrival time immediately — before any processing delay.
+    received_ms = int(time.time() * 1000)
     try:
         payload_str = msg.payload.decode('utf-8')
         payload = json.loads(payload_str)
-        save_to_influxdb(payload)
-        energy_state.update_reading(payload)   # ← aggiunta
+        save_to_influxdb(payload, received_ms)
+        energy_state.update_reading(payload)
     except json.JSONDecodeError:
         logging.warning("MQTT received data that is not valid JSON!")
 

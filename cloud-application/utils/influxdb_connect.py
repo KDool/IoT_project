@@ -3,7 +3,13 @@ import time
 
 from influxdb_client import InfluxDBClient, Point, WriteOptions
 from utils.config import config
-from utils.node_registry import get_node_by_id
+
+# Per-node minimum observed gap (received_ms - sent_ms).
+# The minimum represents the best-case transit latency for each node.
+# delay_ms = current_gap - min_gap, so it is always >= 0.
+# Updated whenever a faster packet is seen — this makes the baseline converge
+# to the true minimum network latency over time.
+_mqtt_offsets: dict[str, int] = {}
 
 influx_config = config["influxdb"]
 INFLUX_URL = influx_config["url"]
@@ -20,15 +26,37 @@ write_api = client.write_api(
 )
 
 
-def save_to_influxdb(payload):
-    """Shared function to parse JSON and write it into InfluxDB."""
-    received_ms = int(time.time() * 1000)
-    delay_ms = 0
+def save_to_influxdb(payload, received_ms: int | None = None):
+    """Shared function to parse JSON and write it into InfluxDB.
     
-    node = get_node_by_id(payload.get("node_id"))
-    if node and "time_offset" in node:
-        sensor_real_time = payload.get("sent_ms", 0) + node["time_offset"]
-        delay_ms = received_ms - sensor_real_time
+    received_ms: arrival timestamp in ms. When called from MQTT, pass this
+    from on_message to avoid measuring queue processing delay. When called
+    from CoAP, omit it and it defaults to now.
+    """
+    if received_ms is None:
+        received_ms = int(time.time() * 1000)
+    node_id = payload.get("node_id")
+    sensor_uptime_ms = int(payload.get("sent_ms", 0))
+    current_gap = received_ms - sensor_uptime_ms
+
+    # Update the per-node minimum gap whenever a faster packet arrives.
+    # Using the minimum ensures delay_ms is always >= 0 and represents
+    # real extra latency, not noise from a slow first packet.
+    if node_id not in _mqtt_offsets or current_gap < _mqtt_offsets[node_id]:
+        if node_id in _mqtt_offsets:
+            logging.info(
+                f"[Delay] Updated min offset for '{node_id}': "
+                f"{_mqtt_offsets[node_id]} → {current_gap} ms"
+            )
+        else:
+            logging.info(
+                f"[Delay] Calibrated offset for '{node_id}': {current_gap} ms"
+            )
+        _mqtt_offsets[node_id] = current_gap
+
+    # delay_ms = extra latency on top of the best-case transit time.
+    # Always >= 0. Near-zero means ideal; growing means congestion.
+    delay_ms = current_gap - _mqtt_offsets[node_id]
 
     try:
         point = (
