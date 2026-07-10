@@ -1,7 +1,9 @@
 import logging
+import time
 
 from influxdb_client import InfluxDBClient, Point, WriteOptions
 from utils.config import config
+from utils.node_registry import get_node_by_id
 
 influx_config = config["influxdb"]
 INFLUX_URL = influx_config["url"]
@@ -20,6 +22,14 @@ write_api = client.write_api(
 
 def save_to_influxdb(payload):
     """Shared function to parse JSON and write it into InfluxDB."""
+    received_ms = int(time.time() * 1000)
+    delay_ms = 0
+    
+    node = get_node_by_id(payload.get("node_id"))
+    if node and "time_offset" in node:
+        sensor_real_time = payload.get("sent_ms", 0) + node["time_offset"]
+        delay_ms = received_ms - sensor_real_time
+
     try:
         point = (
             Point("telemetry_raw")
@@ -32,6 +42,7 @@ def save_to_influxdb(payload):
             .field("power", float(payload.get("v", 0.0) * payload.get("i", 0.0)))
             .field("ml_anomaly", int(payload.get("anomaly", 0)))
             .field("sent_at_ms", int(payload.get("sent_ms", 0)))
+            .field("delay_ms", float(delay_ms))
             .field("adaptive_mode", payload.get("mode", "normal"))
         )
 
