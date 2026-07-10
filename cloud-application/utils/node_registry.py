@@ -8,7 +8,6 @@ so no explicit locking is needed.
 
 import asyncio
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +30,6 @@ def configure(on_new_node_callback):
 def add_node(node_info: dict):
     """Store node info and trigger the back-registration callback."""
     node_id = node_info.get("node_id") or node_info.get("ip", "unknown")
-    
-    # Calculate offset to map sensor uptime to real-world time
-    sensor_ms = node_info.get("sent_ms")
-    if sensor_ms is not None:
-        node_info['time_offset'] = int(time.time() * 1000) - int(sensor_ms)
-        
     _nodes[node_id] = node_info
     logger.info(
         f"[Registry] Node '{node_id}' added  IP={node_info.get('ip')}  "
