@@ -2,6 +2,7 @@
 <simconf version="2023090101">
   <simulation>
     <title>S1</title>
+    <speedlimit>1.0</speedlimit>
     <randomseed>123456</randomseed>
     <motedelay_us>1000000</motedelay_us>
     <radiomedium>
@@ -102,7 +103,7 @@
       <mote>
         <interface_config>
           org.contikios.cooja.interfaces.Position
-          <pos x="42.02876363287054" y="56.055828418555805" />
+          <pos x="49.14892359929414" y="61.67700733941655" />
         </interface_config>
         <interface_config>
           org.contikios.cooja.contikimote.interfaces.ContikiMoteID
@@ -153,7 +154,7 @@
       <skin>org.contikios.cooja.plugins.skins.UDGMVisualizerSkin</skin>
       <viewport>2.668479372598075 0.0 0.0 2.668479372598075 85.01137404522846 87.03403438371262</viewport>
     </plugin_config>
-    <bounds x="1" y="1" height="400" width="400" />
+    <bounds x="1" y="1" height="536" width="400" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.LogListener
@@ -162,7 +163,7 @@
       <formatted_time />
       <coloring />
     </plugin_config>
-    <bounds x="400" y="160" height="240" width="1320" z="1" />
+    <bounds x="402" y="122" height="596" width="1320" z="1" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.TimeLine
@@ -184,6 +185,15 @@
       <notes>Enter notes here</notes>
       <decorations>true</decorations>
     </plugin_config>
-    <bounds x="400" y="0" height="160" width="1320" z="2" />
+    <bounds x="400" y="0" height="123" width="1320" z="2" />
+  </plugin>
+  <plugin>
+    org.contikios.cooja.serialsocket.SerialSocketServer
+    <mote_arg>0</mote_arg>
+    <plugin_config>
+      <port>60001</port>
+      <bound>true</bound>
+    </plugin_config>
+    <bounds x="0" y="0" height="126" width="362" z="4" />
   </plugin>
 </simconf>

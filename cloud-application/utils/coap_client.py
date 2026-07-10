@@ -44,7 +44,21 @@ def _make_uri(ip: str, port: int, path: str) -> str:
     addr = f"[{ip}]" if ":" in ip and not ip.startswith("[") else ip
     return f"coap://{addr}:{port}/{path}"
 
+async def adjust_battery(ip: str, port: int, delta_kwh: float) -> str:
+    """
+    PUT coap://<battery>/actuators/battery  body: raw float (kWh delta)
+    NOTE: unlike set_led/set_status, res-battery.c expects a plain
+    text float, not JSON — see res_put_battery_handler().
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
 
+    uri = _make_uri(ip, port, "actuators/battery")
+    payload = f"{delta_kwh:.5f}".encode()
+
+    request = aiocoap.Message(code=aiocoap.PUT, uri=uri, payload=payload)
+    response = await _protocol.request(request).response
+    return response.payload.decode()
 # ──────────────────────────────────────────────────────────────────────────────
 # Cloud → Sensor: Registration via CoAP Observe
 # ──────────────────────────────────────────────────────────────────────────────

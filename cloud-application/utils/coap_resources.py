@@ -6,6 +6,7 @@ import aiocoap.resource as resource
 from influxdb_client import Point
 from utils import node_registry
 from utils import coap_client
+from utils import energy_state
 
 save_to_influxdb = None
 write_api = None
@@ -22,17 +23,17 @@ def configure(save_func, influx_write_api, influx_bucket):
 
 class TelemetryResource(resource.Resource):
     """Endpoint that receives CoAP POST telemetry data."""
-
-    async def render_post(self, request):
-        try:
-            payload_str = request.payload.decode('utf-8')
-            payload = json.loads(payload_str)
-            save_to_influxdb(payload)
-            return aiocoap.Message(code=aiocoap.CHANGED, payload=b"ACK")
-        except Exception as e:
-            logging.error(f"CoAP POST Error: {e}")
-            return aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=b"Invalid Payload")
-
+async def render_post(self, request):
+    try:
+        payload_str = request.payload.decode('utf-8')
+        payload = json.loads(payload_str)
+        save_to_influxdb(payload)
+        energy_state.update_reading(payload)   # ← aggiunta
+        return aiocoap.Message(code=aiocoap.CHANGED, payload=b"ACK")
+    except Exception as e:
+        logging.error(f"CoAP POST Error: {e}")
+        return aiocoap.Message(code=aiocoap.BAD_REQUEST, payload=b"Invalid Payload")
+    
 
 class RegisterResource(resource.Resource):
     """Optional endpoint for sensors to register themselves."""

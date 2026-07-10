@@ -30,8 +30,10 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: adminpassword
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - mysql
+      - influxdb
     networks:
       - iot_network
 
