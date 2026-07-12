@@ -400,6 +400,245 @@
           "query": "from(bucket: \"iot_des\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"delay_ms\")\n  |> last()\n  |> map(fn: (r) => ({ _time: r._time, _value: r._value, _field: r.node_id + \" (\" + r.ip_address + \")\" }))"
         }
       ]
+    },
+    {
+      "id": 20,
+      "title": "Energy Balance",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": { "x": 0, "y": 34, "w": 24, "h": 1 }
+    },
+    {
+      "id": 21,
+      "title": "Producer vs Load vs Surplus (W)",
+      "description": "producer_w = total solar+wind output, load_w = simulated consumption, surplus_w = producer_w - load_w (positive = charging battery, negative = deficit)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 35, "w": 24, "h": 9 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "surplus_w" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } },
+              { "id": "custom.lineStyle", "value": { "dash": [6, 3], "fill": "dash" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "load_w" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "producer_w" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_balance\")\n  |> filter(fn: (r) => r._field == \"producer_w\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_balance\")\n  |> filter(fn: (r) => r._field == \"load_w\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_balance\")\n  |> filter(fn: (r) => r._field == \"surplus_w\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "title": "Battery Charge / Discharge (kWh per interval)",
+      "description": "Positive = charging (surplus), negative = discharging (deficit). Zero = battery node unreachable or no surplus.",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 44, "w": 12, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "drawStyle": "bars",
+            "barAlignment": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": -0.001 }
+            ]
+          },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"energy_balance\")\n  |> filter(fn: (r) => r._field == \"delta_kwh\")\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)"
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "title": "ML Anomaly Events per Device",
+      "description": "1 = anomaly detected by TinyML model on sensor. Device shuts down after this event until cloud resets it via CoAP.",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 44, "w": 12, "h": 8 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 1,
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 80,
+            "drawStyle": "bars",
+            "barAlignment": 0
+          },
+          "color": { "mode": "palette-classic" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "Normal", "color": "green" }, "1": { "text": "ANOMALY", "color": "red" } } }
+          ]
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"ml_anomaly\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max, createEmpty: false)\n  |> map(fn: (r) => ({ _time: r._time, _value: r._value, _field: r.node_id }))"
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "title": "Current Surplus (W)",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 52, "w": 8, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0 },
+              { "color": "green", "value": 50 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r._measurement == \"energy_balance\")\n  |> filter(fn: (r) => r._field == \"surplus_w\")\n  |> last()"
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "title": "Current Producer Power (W)",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 52, "w": 8, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "grey", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r._measurement == \"energy_balance\")\n  |> filter(fn: (r) => r._field == \"producer_w\")\n  |> last()"
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "title": "Total Anomalies (last 15 min)",
+      "type": "stat",
+      "gridPos": { "x": 16, "y": 52, "w": 8, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["sum"] },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"ml_anomaly\")\n  |> filter(fn: (r) => r._value == 1)\n  |> count()\n  |> group()\n  |> sum(column: \"_value\")"
+        }
+      ]
     }
   ],
   "templating": {

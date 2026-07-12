@@ -40,6 +40,11 @@
 /* Publish interval in seconds — tune per sensor type for traffic testing */
 #define MQTT_PUBLISH_INTERVAL_S 10
 
+/* ── Anomaly simulation ratio ────────────────────────────────────────────── */
+/* Percentage of MQTT publishes that will carry an injected fault reading.
+ * 5 = ~5% of payloads are anomalous.  Range: 0 (disabled) – 100 (always). */
+#define ANOMALY_INJECT_PERCENT 1
+
 /* ── Logging ──────────────────────────────────────────────────────────────── */
 #define LOG_LEVEL_APP LOG_LEVEL_INFO
 

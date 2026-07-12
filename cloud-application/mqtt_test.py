@@ -15,7 +15,7 @@ payload = {
     "v": 48.5, 
     "i": 10.2, 
     "anomaly": 0,
-    "sent_ms": int(time.time() * 1000), # Lấy thời gian hiện tại chuẩn mili-giây
+    "sent_ms": int(time.time() * 1000), 
     "mode": "normal"
 }
 
