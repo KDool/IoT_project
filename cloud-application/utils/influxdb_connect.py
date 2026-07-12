@@ -17,12 +17,21 @@ INFLUX_TOKEN = influx_config["token"]
 INFLUX_ORG = influx_config["org"]
 INFLUX_BUCKET = influx_config["bucket"]
 
+def _on_write_error(conf, data, exception):
+    logging.error(
+        f"[InfluxDB] Batch write FAILED — "
+        f"status={getattr(exception, 'status', '?')} "
+        f"reason={getattr(exception, 'reason', '?')} "
+        f"body={getattr(exception, 'body', str(exception))}"
+    )
+
 client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
 write_api = client.write_api(
     write_options=WriteOptions(
         batch_size=influx_config.get("batch_size", 100),
         flush_interval=influx_config.get("flush_interval", 1000),
-    )
+    ),
+    error_callback=_on_write_error,
 )
 
 
@@ -67,7 +76,7 @@ def save_to_influxdb(payload, received_ms: int | None = None):
             .tag("ip_address", payload.get("ip"))
             .field("voltage", float(payload.get("v", 0.0)))
             .field("current", float(payload.get("i", 0.0)))
-            .field("power", float(payload.get("v", 0.0) * payload.get("i", 0.0)))
+            .field("power", float(payload.get("v", 0.0)) * float(payload.get("i", 0.0)))
             .field("ml_anomaly", int(payload.get("anomaly", 0)))
             .field("sent_at_ms", int(payload.get("sent_ms", 0)))
             .field("delay_ms", float(delay_ms))

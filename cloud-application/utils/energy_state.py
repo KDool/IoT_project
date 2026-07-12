@@ -49,8 +49,9 @@ def _generate_load_w() -> float:
 def _total_producer_power(stale_after_s: float = 30.0) -> float:
     now = time.time()
     return sum(
-        r["power_w"] for r in _latest_readings.values()
-        if now - r["ts"] <= stale_after_s
+        (r["power_w"] for r in _latest_readings.values()
+         if now - r["ts"] <= stale_after_s),
+        0.0  # start=0.0 ensures sum() always returns float, even when empty
     )
 
 
@@ -98,10 +99,10 @@ async def balance_loop():
 
         point = (
             Point("energy_balance")
-            .field("producer_w", producer_w)
-            .field("load_w", load_w)
-            .field("surplus_w", surplus_w)
-            .field("delta_kwh", delta_kwh)
+            .field("producer_w", float(producer_w))
+            .field("load_w", float(load_w))
+            .field("surplus_w", float(surplus_w))
+            .field("delta_kwh", float(delta_kwh))
             .field("battery_reachable", int(battery_reachable))
         )
         write_api.write(bucket=INFLUX_BUCKET, record=point)

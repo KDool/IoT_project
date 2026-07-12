@@ -39,6 +39,13 @@
 #define SENSOR_I_RANGE   3
 /* Max P ≈ 24.9 × 17.9 ≈ 446 W  (nominal ceiling ~400 W) */
 
+/* ── Anomaly simulation ratio ────────────────────────────────────────────── */
+/* Percentage of MQTT publishes that will carry an injected fault reading.
+ * 5 = ~5% of payloads are anomalous.  Range: 0 (disabled) – 100 (always). */
+/* Anomaly injection expressed in tenths-of-a-percent.
+ * 5 = 0.5%,  10 = 1%,  50 = 5%.  Resolution: 0.1%. */
+#define ANOMALY_INJECT_PERCENT 5
+
 /* ── Logging ──────────────────────────────────────────────────────────────── */
 #define LOG_LEVEL_APP LOG_LEVEL_INFO
 
