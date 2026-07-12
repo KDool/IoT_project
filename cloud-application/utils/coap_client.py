@@ -44,11 +44,19 @@ def _make_uri(ip: str, port: int, path: str) -> str:
     addr = f"[{ip}]" if ":" in ip and not ip.startswith("[") else ip
     return f"coap://{addr}:{port}/{path}"
 
+class BatteryChargeLockedError(Exception):
+    """Raised when the battery firmware refuses a charge command (SoC lock active)."""
+    pass
+
+
 async def adjust_battery(ip: str, port: int, delta_kwh: float) -> str:
     """
     PUT coap://<battery>/actuators/battery  body: raw float (kWh delta)
     NOTE: unlike set_led/set_status, res-battery.c expects a plain
     text float, not JSON — see res_put_battery_handler().
+
+    Raises BatteryChargeLockedError if the firmware rejects the command
+    (4.03 Forbidden — autonomous SoC lock active, no manual override).
     """
     if not _protocol:
         raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
@@ -58,10 +66,30 @@ async def adjust_battery(ip: str, port: int, delta_kwh: float) -> str:
 
     request = aiocoap.Message(code=aiocoap.PUT, uri=uri, payload=payload)
     response = await _protocol.request(request).response
-    return response.payload.decode()
+
+    reply = response.payload.decode()
+
+    if response.code == aiocoap.FORBIDDEN:
+        raise BatteryChargeLockedError(reply)
+
+    if not response.code.is_successful():
+        raise RuntimeError(f"Unexpected CoAP response ({response.code}): {reply}")
+
+    return reply
 # ──────────────────────────────────────────────────────────────────────────────
 # Cloud → Sensor: Registration via CoAP Observe
 # ──────────────────────────────────────────────────────────────────────────────
+async def set_battery_override(ip: str, port: int, enabled: bool) -> str:
+
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
+
+    uri = _make_uri(ip, port, "actuators/battery/override")
+    payload = b"on" if enabled else b"off"
+
+    request = aiocoap.Message(code=aiocoap.PUT, uri=uri, payload=payload)
+    response = await _protocol.request(request).response
+    return response.payload.decode()
 
 async def register_with_sensor(node_info: dict):
     """
