@@ -2,4 +2,6 @@ aiocoap
 urllib3
 paho-mqtt
 requests
+paho-mqtt
+requests
 influxdb-client
