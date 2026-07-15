@@ -59,8 +59,10 @@ def _generate_load_w() -> float:
 def _power_by_types(types: set[str], stale_after_s: float = 30.0) -> float:
     now = time.time()
     return float(sum(
-        r["power_w"] for r in _latest_readings.values()
-        if r["type"] in types and now - r["ts"] <= stale_after_s
+        r["power_w"] for node_id, r in _latest_readings.items()
+        if r["type"] in types
+        and now - r["ts"] <= stale_after_s
+        and node_registry.get_node_by_id(node_id) is not None
     ))
 
 

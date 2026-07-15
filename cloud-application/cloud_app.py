@@ -57,13 +57,43 @@ async def start_coap_server():
 
 _background_tasks = set()
 
+
+async def _monitor_sensor_liveness():
+    """
+    Active heartbeat loop.
+
+    Every 10 seconds, probe each registered node with CoAP:
+    - battery nodes: GET /actuators/battery
+    - all other nodes: GET /actuators/status
+
+    If a node does not answer, remove it from the registry so the energy
+    balance no longer uses it.
+    """
+    probe_interval_s = 10.0
+
+    while True:
+        nodes = node_registry.get_all_nodes()
+        for node in nodes:
+            node_id = node.get("node_id", "unknown")
+            alive = await coap_client.probe_node(node, timeout_s=3.0)
+            if not alive:
+                logging.warning(
+                    f"[Failure] Node '{node_id}' did not respond to CoAP heartbeat. "
+                    "Removing from registry."
+                )
+                node_registry.remove_node(node_id)
+        await asyncio.sleep(probe_interval_s)
+
 async def run():
     protocol = await aiocoap.Context.create_client_context()
     coap_client.set_protocol(protocol)
+    node_registry.configure(on_new_node_callback=coap_client.register_with_sensor,
+                            event_loop=asyncio.get_running_loop())
 
     t1 = asyncio.create_task(start_coap_server())
     t2 = asyncio.create_task(energy_state.balance_loop())
-    _background_tasks.update({t1, t2})   # riferimento forte: evita che il GC li distrugga
+    t3 = asyncio.create_task(_monitor_sensor_liveness())
+    _background_tasks.update({t1, t2, t3})   # riferimento forte: evita che il GC li distrugga
 
     await asyncio.get_running_loop().create_future()
 

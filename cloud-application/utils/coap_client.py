@@ -76,6 +76,43 @@ async def adjust_battery(ip: str, port: int, delta_kwh: float) -> str:
         raise RuntimeError(f"Unexpected CoAP response ({response.code}): {reply}")
 
     return reply
+
+
+async def probe_node(node_info: dict, timeout_s: float = 3.0) -> bool:
+    """
+    Actively check whether a node is alive by sending a CoAP GET to one of
+    its existing resources.
+
+    Battery nodes expose /actuators/battery.
+    Other sensor nodes expose /actuators/status.
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
+
+    ip = node_info.get("ip")
+    if not ip:
+        return False
+
+    port = int(node_info.get("port", 5683))
+    node_id = node_info.get("node_id", ip)
+    node_type = str(node_info.get("type", "")).lower()
+    path = "actuators/battery" if node_type == "battery" else "actuators/status"
+    uri = _make_uri(ip, port, path)
+
+    request = aiocoap.Message(code=aiocoap.GET, uri=uri)
+    logger.debug(f"[CoAP Client] Probing '{node_id}' via GET {uri}")
+
+    try:
+        response = await asyncio.wait_for(_protocol.request(request).response, timeout=timeout_s)
+        alive = response.code.is_successful()
+        if alive:
+            logger.info(f"[CoAP Client] Heartbeat OK for '{node_id}' ({response.code})")
+        else:
+            logger.warning(f"[CoAP Client] Heartbeat failed for '{node_id}' ({response.code})")
+        return alive
+    except Exception as exc:
+        logger.warning(f"[CoAP Client] Heartbeat probe failed for '{node_id}' at {uri}: {exc}")
+        return False
 # ──────────────────────────────────────────────────────────────────────────────
 # Cloud → Sensor: Registration via CoAP Observe
 # ──────────────────────────────────────────────────────────────────────────────
