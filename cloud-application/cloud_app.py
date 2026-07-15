@@ -55,12 +55,15 @@ async def start_coap_server():
 # MAIN
 # ==========================================
 
+_background_tasks = set()
+
 async def run():
     protocol = await aiocoap.Context.create_client_context()
     coap_client.set_protocol(protocol)
 
-    asyncio.create_task(start_coap_server())
-    asyncio.create_task(energy_state.balance_loop())   # ← aggiunta
+    t1 = asyncio.create_task(start_coap_server())
+    t2 = asyncio.create_task(energy_state.balance_loop())
+    _background_tasks.update({t1, t2})   # riferimento forte: evita che il GC li distrugga
 
     await asyncio.get_running_loop().create_future()
 
