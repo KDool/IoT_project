@@ -1,8 +1,8 @@
 {
   "influxdb": {
     "url": "http://localhost:8086",
-    "token": "kQYFgXLwV4uZvEFNatrZINMYDQ3B4SNiKaiDYVduv6esUfzR881TpdD2iUe-R6KsH5S68va6ta4UIFcvS7FKRw==",
-    "org": "myorg",
+    "token": "QE2MFowBr2lUa4w8vYVn45soN1sOwH-xEILw2zaHc2M8nNoVDUn3DHB0En6sfGw-rifjQBD3rgD2REGCY30-Pg==",
+    "org": "iot_org",
     "bucket": "iot_des",
     "batch_size": 100,
     "flush_interval": 1000

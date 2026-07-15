@@ -14,7 +14,7 @@ automatically when a sensor POSTs to /register on the cloud server.
 
 import asyncio
 import logging
-
+import json
 import aiocoap
 
 logger = logging.getLogger(__name__)
@@ -134,7 +134,23 @@ async def _listen_push(node_id: str, observation):
     except Exception as e:
         logger.warning(f"[CoAP Client] Observation for '{node_id}' ended: {e}")
 
+async def get_battery_state(ip: str, port: int) -> dict:
+    """
+    GET coap://<battery>/actuators/battery
+    Returns {"max_capacity": float, "charged_capacity": float,
+             "charging_locked": bool, "override": bool}
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
 
+    uri = _make_uri(ip, port, "actuators/battery")
+    request = aiocoap.Message(code=aiocoap.GET, uri=uri)
+    response = await _protocol.request(request).response
+
+    if not response.code.is_successful():
+        raise RuntimeError(f"Unexpected CoAP response ({response.code})")
+
+    return json.loads(response.payload.decode())
 # ──────────────────────────────────────────────────────────────────────────────
 # Cloud → Sensor: LED Control
 # ──────────────────────────────────────────────────────────────────────────────

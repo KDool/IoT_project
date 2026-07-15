@@ -293,7 +293,7 @@ PROCESS_THREAD(coap_register_process, ev, data)
   unsigned long sent_ms = clock_seconds() * 1000UL;
   snprintf(payload, sizeof(payload),
     "{\"node_id\":\"%s\",\"ip\":\"%s\",\"port\":5683,"
-    "\"type\":\"coap-mqtt-sensor\",\"proto\":\"coap\",\"sent_ms\":%lu}",
+    "\"type\":\"" NODE_TYPE "\",\"proto\":\"coap\",\"sent_ms\":%lu}",
     node_id, node_ip_str, sent_ms);
 
   coap_endpoint_parse(CLOUD_COAP_EP, strlen(CLOUD_COAP_EP), &cloud_ep);
