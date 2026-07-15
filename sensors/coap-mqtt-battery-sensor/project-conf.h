@@ -12,8 +12,8 @@
 #define COAP_MAX_CHUNK_SIZE 192
 
 /* ── Battery simulation ─────────────────────────────────────────────────── */
-#define BATTERY_MAX_CAPACITY 100.0  /* kWh */
-#define BATTERY_START_CAPACITY 50.0 /* kWh */
+#define BATTERY_MAX_CAPACITY 10.0  /* kWh */
+#define BATTERY_START_CAPACITY 5.0 /* kWh */
 
 /* ── Logging ──────────────────────────────────────────────────────────────── */
 #define LOG_LEVEL_APP LOG_LEVEL_INFO
