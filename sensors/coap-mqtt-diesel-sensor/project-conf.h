@@ -37,8 +37,8 @@
 #define MQTT_CLIENT_CONF_SENSOR_PUB_TOPIC "iot/telemetry"
 #define MQTT_CLIENT_CONF_SENSOR_SUB_TOPIC "iot/cmd/%s"
 
-/* Publish interval in seconds — tune per sensor type for traffic testing */
-#define MQTT_PUBLISH_INTERVAL_S 10
+/* Publish interval in milliseconds — tune per sensor type for traffic testing */
+#define MQTT_PUBLISH_INTERVAL_MS 5000
 
 /* ── Anomaly simulation ratio ────────────────────────────────────────────── */
 /* Percentage of MQTT publishes that will carry an injected fault reading.

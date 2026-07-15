@@ -127,10 +127,58 @@
 
 /* Timing */
 #define REGISTER_DELAY       (15 * CLOCK_SECOND) /* wait for RPL to converge */
-#ifndef MQTT_PUBLISH_INTERVAL_S
-#define MQTT_PUBLISH_INTERVAL_S 5                /* default: publish every 5 s */
+static clock_time_t
+mqtt_publish_interval_ticks(void)
+{
+  uint32_t interval_ms;
+  uint64_t ticks;
+
+#ifdef MQTT_PUBLISH_INTERVAL_MS
+  interval_ms = MQTT_PUBLISH_INTERVAL_MS;
+#elif defined(MQTT_PUBLISH_INTERVAL_S)
+  interval_ms = (uint32_t)MQTT_PUBLISH_INTERVAL_S * 1000UL;
+#else
+  interval_ms = 5000UL; /* default: publish every 5 s */
 #endif
-#define MQTT_PUBLISH_INTERVAL (MQTT_PUBLISH_INTERVAL_S * CLOCK_SECOND)
+
+  ticks = ((uint64_t)interval_ms * CLOCK_SECOND + 999UL) / 1000UL;
+  if(interval_ms > 0 && ticks == 0) {
+    ticks = 1;
+  }
+  return (clock_time_t)ticks;
+}
+
+static uint32_t
+mqtt_publish_interval_ms(void)
+{
+#ifdef MQTT_PUBLISH_INTERVAL_MS
+  return (uint32_t)MQTT_PUBLISH_INTERVAL_MS;
+#elif defined(MQTT_PUBLISH_INTERVAL_S)
+  return (uint32_t)MQTT_PUBLISH_INTERVAL_S * 1000UL;
+#else
+  return 5000UL;
+#endif
+}
+
+static uint16_t
+mqtt_keepalive_seconds(void)
+{
+  uint32_t keepalive_ms;
+  uint32_t keepalive_s;
+
+  uint32_t interval_ms = mqtt_publish_interval_ms();
+  keepalive_ms = interval_ms * 3UL;
+  keepalive_s = (keepalive_ms + 999UL) / 1000UL;
+  if(interval_ms > 0 && keepalive_s == 0) {
+    keepalive_s = 1;
+  }
+  if(keepalive_s > 0xFFFFUL) {
+    keepalive_s = 0xFFFFUL;
+  }
+  return (uint16_t)keepalive_s;
+}
+
+#define MQTT_PUBLISH_INTERVAL (mqtt_publish_interval_ticks())
 #define MQTT_RECONNECT_DELAY  (5 * CLOCK_SECOND)
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -150,6 +198,7 @@ extern coap_resource_t res_toggle;
 
 static char node_ip_str[42];   /* own global IPv6 address as string */
 static char node_id[32];       /* e.g.  "prod_wind_a1b2" / "prod_solar_a1b2" */
+static unsigned long mqtt_seq = 0;
 
 /* Device logical status — readable/writable by res-status.c via extern */
 bool device_on      = SENSOR_DEFAULT_ON;  /* true = running, false = off       */
@@ -439,17 +488,21 @@ static void publish_telemetry(void)
     "\"type\":\"" NODE_TYPE "\","
     "\"proto\":\"MQTT\","
     "\"ip\":\"%s\","
+    "\"seq\":%lu,"
     "\"v\":%d.%d,"
     "\"i\":%d.%d,"
     "\"anomaly\":%d,"
+    "\"publish_interval_ms\":%lu,"
     "\"sent_ms\":%lu,"
     "\"mode\":\"%s\","
     "\"status\":\"%s\""
     "}",
     node_id, node_ip_str,
+    mqtt_seq++,
     v_int, v_frac,
     i_int, i_frac,
     anomaly,
+    (unsigned long)mqtt_publish_interval_ms(),
     sent_ms,
     anomaly ? "anomaly" : "normal",
     device_on ? "ON" : (device_starting ? "STARTING" : "OFF"));
@@ -520,7 +573,7 @@ PROCESS_THREAD(mqtt_sensor_process, ev, data)
         /* Connect to broker */
         connect_attempts = 0;
         mqtt_connect(&mqtt_conn, broker_ip, MQTT_BROKER_PORT,
-                     MQTT_PUBLISH_INTERVAL * 3 / CLOCK_SECOND /* keep-alive */,
+                     mqtt_keepalive_seconds() /* keep-alive */,
                      1 /* clean_session */);
         mqtt_state = MQTT_STATE_CONNECTING;
         LOG_INFO("[MQTT] Connecting to broker %s:%d\n", broker_ip, MQTT_BROKER_PORT);

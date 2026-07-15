@@ -348,7 +348,7 @@
     },
     {
       "id": 7,
-      "title": "Current Delay (latest)",
+      "title": "Current Delay (avg last 10s)",
       "type": "stat",
       "gridPos": {
         "x": 16,
@@ -397,7 +397,7 @@
             "type": "influxdb",
             "uid": "${DS_INFLUXDB}"
           },
-          "query": "from(bucket: \"iot_des\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"delay_ms\")\n  |> last()\n  |> map(fn: (r) => ({ _time: r._time, _value: r._value, _field: r.node_id + \" (\" + r.ip_address + \")\" }))"
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: -10s)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"delay_ms\")\n  |> group(columns: [\"node_id\"])\n  |> mean()\n  |> map(fn: (r) => ({ _time: now(), _value: r._value, _field: r.node_id }))"
         }
       ]
     },
@@ -637,6 +637,104 @@
           "refId": "A",
           "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
           "query": "from(bucket: \"iot_des\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"ml_anomaly\")\n  |> filter(fn: (r) => r._value == 1)\n  |> count()\n  |> group()\n  |> sum(column: \"_value\")"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "title": "Battery Capacity (latest)",
+      "description": "Derived from cumulative energy_balance.delta_kwh. Start capacity is 5.0 kWh and max capacity is 10.0 kWh.",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 56, "w": 12, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kwatth",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 2.5 },
+              { "color": "green", "value": 7.5 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"energy_balance\")\n  |> filter(fn: (r) => r._field == \"delta_kwh\")\n  |> sum()\n  |> map(fn: (r) => ({ _time: now(), _value: 5.0 + float(v: r._value), _field: \"battery_capacity\" }))"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "title": "Battery SoC (fullness)",
+      "description": "100% means full capacity. This is derived from the same energy_balance.delta_kwh stream as the capacity stat.",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 56, "w": 12, "h": 4 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 25 },
+              { "color": "green", "value": 75 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"iot_des\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"energy_balance\")\n  |> filter(fn: (r) => r._field == \"delta_kwh\")\n  |> sum()\n  |> map(fn: (r) => ({ _time: now(), _value: ((5.0 + float(v: r._value)) / 10.0) * 100.0, _field: \"battery_soc\" }))"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "title": "PDR by Device (%)",
+      "description": "Computed per device over the selected time range. Each row is one node_id.",
+      "type": "table",
+      "gridPos": { "x": 0, "y": 60, "w": 24, "h": 5 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "starts = from(bucket: \"iot_des\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"seq\")\n  |> filter(fn: (r) => r._value == 0)\n  |> group(columns: [\"node_id\"])\n  |> last()\n  |> duplicate(column: \"_time\", as: \"start_time\")\n  |> keep(columns: [\"node_id\", \"start_time\"])\n\ndata = from(bucket: \"iot_des\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"seq\")\n  |> duplicate(column: \"_time\", as: \"sample_time\")\n\njoin(tables: {data: data, starts: starts}, on: [\"node_id\"])\n  |> filter(fn: (r) => r.sample_time >= r.start_time)\n  |> group(columns: [\"node_id\"])\n  |> reduce(\n    fn: (r, accumulator) => ({\n      received: accumulator.received + 1.0,\n      max_seq: if float(v: r._value) > accumulator.max_seq then float(v: r._value) else accumulator.max_seq\n    }),\n    identity: {received: 0.0, max_seq: -1.0}\n  )\n  |> map(fn: (r) => ({\n    node_id: r.node_id,\n    pdr_percent: if r.max_seq < 0.0 then 0.0 else (r.received / (r.max_seq + 1.0)) * 100.0\n  }))\n  |> keep(columns: [\"node_id\", \"pdr_percent\"])"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "title": "Messages Received by Device",
+      "description": "Count of telemetry messages received by each device over the selected time range. Each row is one node_id.",
+      "type": "table",
+      "gridPos": { "x": 0, "y": 65, "w": 24, "h": 5 },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "starts = from(bucket: \"iot_des\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"seq\")\n  |> filter(fn: (r) => r._value == 0)\n  |> group(columns: [\"node_id\"])\n  |> last()\n  |> duplicate(column: \"_time\", as: \"start_time\")\n  |> keep(columns: [\"node_id\", \"start_time\"])\n\ndata = from(bucket: \"iot_des\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r._measurement == \"telemetry_raw\")\n  |> filter(fn: (r) => r._field == \"seq\")\n  |> duplicate(column: \"_time\", as: \"sample_time\")\n\njoin(tables: {data: data, starts: starts}, on: [\"node_id\"])\n  |> filter(fn: (r) => r.sample_time >= r.start_time)\n  |> group(columns: [\"node_id\"])\n  |> count(column: \"_value\")\n  |> rename(columns: { _value: \"messages_received\" })\n  |> keep(columns: [\"node_id\", \"messages_received\"])"
         }
       ]
     }
