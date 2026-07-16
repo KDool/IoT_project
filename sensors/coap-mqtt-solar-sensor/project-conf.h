@@ -21,7 +21,7 @@
 #define MQTT_CLIENT_CONF_SENSOR_SUB_TOPIC "iot/cmd/%s"
 
 /* Publish interval in milliseconds — tune per sensor type for traffic testing */
-#define MQTT_PUBLISH_INTERVAL_MS 5000
+#define MQTT_PUBLISH_INTERVAL_MS 800
 
 /* ── Sensor simulation ranges (Solar ~600 W max) ─────────────────────────── */
 /* Voltage: V_BASE + (rand % V_RANGE)   →  32–36 V  */

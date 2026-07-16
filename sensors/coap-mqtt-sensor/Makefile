@@ -5,6 +5,7 @@ CONTIKI = ../../../contiki-ng
 
 # Include CoAP resources in ./resources/
 MODULES_REL += ./resources
+PROJECT_SOURCEFILES += sampling_control.c
 
 # CoAP + MQTT modules
 include $(CONTIKI)/Makefile.dir-variables

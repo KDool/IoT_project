@@ -78,6 +78,49 @@ async def adjust_battery(ip: str, port: int, delta_kwh: float) -> str:
     return reply
 
 
+async def set_sampling_interval(ip: str, port: int, interval_ms: int) -> str:
+    """
+    PUT coap://<sensor>/actuators/sampling body: interval in milliseconds.
+    Used by the cloud to slow down telemetry when congestion is detected.
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
+
+    if interval_ms <= 0:
+        raise ValueError("Interval must be a positive integer")
+
+    uri = _make_uri(ip, port, "actuators/sampling")
+    payload = str(int(interval_ms)).encode()
+
+    request = aiocoap.Message(code=aiocoap.PUT, uri=uri, payload=payload)
+    response = await _protocol.request(request).response
+    reply = response.payload.decode()
+
+    if not response.code.is_successful():
+        raise RuntimeError(f"Unexpected CoAP response ({response.code}): {reply}")
+
+    return reply
+
+
+async def get_sampling_interval(ip: str, port: int) -> int:
+    """
+    GET coap://<sensor>/actuators/sampling
+    Returns the current publish interval in milliseconds.
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
+
+    uri = _make_uri(ip, port, "actuators/sampling")
+    request = aiocoap.Message(code=aiocoap.GET, uri=uri)
+    response = await _protocol.request(request).response
+    reply = response.payload.decode().strip()
+
+    if not response.code.is_successful():
+        raise RuntimeError(f"Unexpected CoAP response ({response.code}): {reply}")
+
+    return int(reply)
+
+
 async def probe_node(node_info: dict, timeout_s: float = 3.0) -> bool:
     """
     Actively check whether a node is alive by sending a CoAP GET to one of

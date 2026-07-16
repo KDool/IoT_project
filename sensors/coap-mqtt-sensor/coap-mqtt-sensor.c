@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "contiki.h"
 #include "contiki-net.h"
@@ -46,6 +47,8 @@
 /* Timers */
 #include "sys/etimer.h"
 #include "sys/ctimer.h"
+
+#include "sampling_control.h"
 
 /* Hardware */
 #include "dev/leds.h"
@@ -127,38 +130,6 @@
 
 /* Timing */
 #define REGISTER_DELAY       (15 * CLOCK_SECOND) /* wait for RPL to converge */
-static clock_time_t
-mqtt_publish_interval_ticks(void)
-{
-  uint32_t interval_ms;
-  uint64_t ticks;
-
-#ifdef MQTT_PUBLISH_INTERVAL_MS
-  interval_ms = MQTT_PUBLISH_INTERVAL_MS;
-#elif defined(MQTT_PUBLISH_INTERVAL_S)
-  interval_ms = (uint32_t)MQTT_PUBLISH_INTERVAL_S * 1000UL;
-#else
-  interval_ms = 5000UL; /* default: publish every 5 s */
-#endif
-
-  ticks = ((uint64_t)interval_ms * CLOCK_SECOND + 999UL) / 1000UL;
-  if(interval_ms > 0 && ticks == 0) {
-    ticks = 1;
-  }
-  return (clock_time_t)ticks;
-}
-
-static uint32_t
-mqtt_publish_interval_ms(void)
-{
-#ifdef MQTT_PUBLISH_INTERVAL_MS
-  return (uint32_t)MQTT_PUBLISH_INTERVAL_MS;
-#elif defined(MQTT_PUBLISH_INTERVAL_S)
-  return (uint32_t)MQTT_PUBLISH_INTERVAL_S * 1000UL;
-#else
-  return 5000UL;
-#endif
-}
 
 static uint16_t
 mqtt_keepalive_seconds(void)
@@ -166,7 +137,7 @@ mqtt_keepalive_seconds(void)
   uint32_t keepalive_ms;
   uint32_t keepalive_s;
 
-  uint32_t interval_ms = mqtt_publish_interval_ms();
+  uint32_t interval_ms = get_publish_interval_ms();
   keepalive_ms = interval_ms * 3UL;
   keepalive_s = (keepalive_ms + 999UL) / 1000UL;
   if(interval_ms > 0 && keepalive_s == 0) {
@@ -177,8 +148,6 @@ mqtt_keepalive_seconds(void)
   }
   return (uint16_t)keepalive_s;
 }
-
-#define MQTT_PUBLISH_INTERVAL (mqtt_publish_interval_ticks())
 #define MQTT_RECONNECT_DELAY  (5 * CLOCK_SECOND)
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -188,6 +157,7 @@ mqtt_keepalive_seconds(void)
 extern coap_resource_t res_leds;    /* PUT /actuators/leds?color=r|g|b  mode=on|off */
 extern coap_resource_t res_push;    /* GET /test/push  (observable, periodic 5 s)   */
 extern coap_resource_t res_status;  /* GET/PUT /actuators/status  body=on|off        */
+extern coap_resource_t res_sampling; /* GET/PUT /actuators/sampling body=<interval>   */
 #if PLATFORM_HAS_LEDS
 extern coap_resource_t res_toggle;
 #endif
@@ -237,6 +207,7 @@ static uint8_t connect_attempts;  /* counts CONNECTING timer ticks */
 PROCESS(coap_server_process,   "CoAP Server");
 PROCESS(coap_register_process, "CoAP Register to Cloud");
 PROCESS(mqtt_sensor_process,   "MQTT Sensor");
+extern struct process mqtt_sensor_process;
 
 AUTOSTART_PROCESSES(&coap_server_process,
                     &coap_register_process,
@@ -281,6 +252,7 @@ PROCESS_THREAD(coap_server_process, ev, data)
   coap_activate_resource(&res_leds,    "actuators/leds");
   coap_activate_resource(&res_push,    "test/push");
   coap_activate_resource(&res_status,  "actuators/status");
+  coap_activate_resource(&res_sampling, "actuators/sampling");
 #if PLATFORM_HAS_LEDS
   coap_activate_resource(&res_toggle,  "actuators/toggle");
 #endif
@@ -288,6 +260,7 @@ PROCESS_THREAD(coap_server_process, ev, data)
   LOG_INFO("CoAP server ready\n");
   LOG_INFO("  actuators/leds   — PUT ?color=r|g|b  body: mode=on|off\n");
   LOG_INFO("  actuators/status — GET|PUT body: on|off\n");
+  LOG_INFO("  actuators/sampling — GET|PUT body: <interval_ms>\n");
   LOG_INFO("  test/push        — GET Observe (cloud subscribes here)\n");
 
   while(1) {
@@ -502,7 +475,7 @@ static void publish_telemetry(void)
     v_int, v_frac,
     i_int, i_frac,
     anomaly,
-    (unsigned long)mqtt_publish_interval_ms(),
+    (unsigned long)get_publish_interval_ms(),
     sent_ms,
     anomaly ? "anomaly" : "normal",
     device_on ? "ON" : (device_starting ? "STARTING" : "OFF"));
@@ -561,6 +534,14 @@ PROCESS_THREAD(mqtt_sensor_process, ev, data)
   while(1) {
     PROCESS_YIELD();
 
+    if(ev == PROCESS_EVENT_POLL && publish_interval_is_dirty() &&
+       mqtt_state == MQTT_STATE_CONNECTED) {
+      etimer_set(&pub_timer, publish_interval_to_ticks(get_publish_interval_ms()));
+      publish_interval_clear_dirty();
+      LOG_INFO("[MQTT] Applied new publish interval: %lu ms\n",
+               (unsigned long)get_publish_interval_ms());
+    }
+
     if(etimer_expired(&pub_timer)) {
       if(!have_connectivity()) {
         /* Network not ready — check again soon */
@@ -600,7 +581,7 @@ PROCESS_THREAD(mqtt_sensor_process, ev, data)
         }
         /* Publish telemetry */
         publish_telemetry();
-        etimer_set(&pub_timer, MQTT_PUBLISH_INTERVAL);
+        etimer_set(&pub_timer, publish_interval_to_ticks(get_publish_interval_ms()));
         continue;
       }
 
