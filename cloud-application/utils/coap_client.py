@@ -14,7 +14,7 @@ automatically when a sensor POSTs to /register on the cloud server.
 
 import asyncio
 import logging
-
+import json
 import aiocoap
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,86 @@ async def adjust_battery(ip: str, port: int, delta_kwh: float) -> str:
         raise RuntimeError(f"Unexpected CoAP response ({response.code}): {reply}")
 
     return reply
+
+
+async def set_sampling_interval(ip: str, port: int, interval_ms: int) -> str:
+    """
+    PUT coap://<sensor>/actuators/sampling body: interval in milliseconds.
+    Used by the cloud to slow down telemetry when congestion is detected.
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
+
+    if interval_ms <= 0:
+        raise ValueError("Interval must be a positive integer")
+
+    uri = _make_uri(ip, port, "actuators/sampling")
+    payload = str(int(interval_ms)).encode()
+
+    request = aiocoap.Message(code=aiocoap.PUT, uri=uri, payload=payload)
+    response = await _protocol.request(request).response
+    reply = response.payload.decode()
+
+    if not response.code.is_successful():
+        raise RuntimeError(f"Unexpected CoAP response ({response.code}): {reply}")
+
+    return reply
+
+
+async def get_sampling_interval(ip: str, port: int) -> int:
+    """
+    GET coap://<sensor>/actuators/sampling
+    Returns the current publish interval in milliseconds.
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
+
+    uri = _make_uri(ip, port, "actuators/sampling")
+    request = aiocoap.Message(code=aiocoap.GET, uri=uri)
+    response = await _protocol.request(request).response
+    reply = response.payload.decode().strip()
+
+    if not response.code.is_successful():
+        raise RuntimeError(f"Unexpected CoAP response ({response.code}): {reply}")
+
+    return int(reply)
+
+
+async def probe_node(node_info: dict, timeout_s: float = 3.0) -> bool:
+    """
+    Actively check whether a node is alive by sending a CoAP GET to one of
+    its existing resources.
+
+    Battery nodes expose /actuators/battery.
+    Other sensor nodes expose /actuators/status.
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
+
+    ip = node_info.get("ip")
+    if not ip:
+        return False
+
+    port = int(node_info.get("port", 5683))
+    node_id = node_info.get("node_id", ip)
+    node_type = str(node_info.get("type", "")).lower()
+    path = "actuators/battery" if node_type == "battery" else "actuators/status"
+    uri = _make_uri(ip, port, path)
+
+    request = aiocoap.Message(code=aiocoap.GET, uri=uri)
+    logger.debug(f"[CoAP Client] Probing '{node_id}' via GET {uri}")
+
+    try:
+        response = await asyncio.wait_for(_protocol.request(request).response, timeout=timeout_s)
+        alive = response.code.is_successful()
+        if alive:
+            logger.info(f"[CoAP Client] Heartbeat OK for '{node_id}' ({response.code})")
+        else:
+            logger.warning(f"[CoAP Client] Heartbeat failed for '{node_id}' ({response.code})")
+        return alive
+    except Exception as exc:
+        logger.warning(f"[CoAP Client] Heartbeat probe failed for '{node_id}' at {uri}: {exc}")
+        return False
 # ──────────────────────────────────────────────────────────────────────────────
 # Cloud → Sensor: Registration via CoAP Observe
 # ──────────────────────────────────────────────────────────────────────────────
@@ -134,7 +214,23 @@ async def _listen_push(node_id: str, observation):
     except Exception as e:
         logger.warning(f"[CoAP Client] Observation for '{node_id}' ended: {e}")
 
+async def get_battery_state(ip: str, port: int) -> dict:
+    """
+    GET coap://<battery>/actuators/battery
+    Returns {"max_capacity": float, "charged_capacity": float,
+             "charging_locked": bool, "override": bool}
+    """
+    if not _protocol:
+        raise RuntimeError("[CoAP Client] Protocol not set. Call set_protocol() first.")
 
+    uri = _make_uri(ip, port, "actuators/battery")
+    request = aiocoap.Message(code=aiocoap.GET, uri=uri)
+    response = await _protocol.request(request).response
+
+    if not response.code.is_successful():
+        raise RuntimeError(f"Unexpected CoAP response ({response.code})")
+
+    return json.loads(response.payload.decode())
 # ──────────────────────────────────────────────────────────────────────────────
 # Cloud → Sensor: LED Control
 # ──────────────────────────────────────────────────────────────────────────────

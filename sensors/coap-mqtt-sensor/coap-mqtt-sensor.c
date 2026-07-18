@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "contiki.h"
 #include "contiki-net.h"
@@ -46,6 +47,8 @@
 /* Timers */
 #include "sys/etimer.h"
 #include "sys/ctimer.h"
+
+#include "sampling_control.h"
 
 /* Hardware */
 #include "dev/leds.h"
@@ -127,10 +130,24 @@
 
 /* Timing */
 #define REGISTER_DELAY       (15 * CLOCK_SECOND) /* wait for RPL to converge */
-#ifndef MQTT_PUBLISH_INTERVAL_S
-#define MQTT_PUBLISH_INTERVAL_S 5                /* default: publish every 5 s */
-#endif
-#define MQTT_PUBLISH_INTERVAL (MQTT_PUBLISH_INTERVAL_S * CLOCK_SECOND)
+
+static uint16_t
+mqtt_keepalive_seconds(void)
+{
+  uint32_t keepalive_ms;
+  uint32_t keepalive_s;
+
+  uint32_t interval_ms = get_publish_interval_ms();
+  keepalive_ms = interval_ms * 3UL;
+  keepalive_s = (keepalive_ms + 999UL) / 1000UL;
+  if(interval_ms > 0 && keepalive_s == 0) {
+    keepalive_s = 1;
+  }
+  if(keepalive_s > 0xFFFFUL) {
+    keepalive_s = 0xFFFFUL;
+  }
+  return (uint16_t)keepalive_s;
+}
 #define MQTT_RECONNECT_DELAY  (5 * CLOCK_SECOND)
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -140,6 +157,7 @@
 extern coap_resource_t res_leds;    /* PUT /actuators/leds?color=r|g|b  mode=on|off */
 extern coap_resource_t res_push;    /* GET /test/push  (observable, periodic 5 s)   */
 extern coap_resource_t res_status;  /* GET/PUT /actuators/status  body=on|off        */
+extern coap_resource_t res_sampling; /* GET/PUT /actuators/sampling body=<interval>   */
 #if PLATFORM_HAS_LEDS
 extern coap_resource_t res_toggle;
 #endif
@@ -150,6 +168,7 @@ extern coap_resource_t res_toggle;
 
 static char node_ip_str[42];   /* own global IPv6 address as string */
 static char node_id[32];       /* e.g.  "prod_wind_a1b2" / "prod_solar_a1b2" */
+static unsigned long mqtt_seq = 0;
 
 /* Device logical status — readable/writable by res-status.c via extern */
 bool device_on      = SENSOR_DEFAULT_ON;  /* true = running, false = off       */
@@ -188,6 +207,7 @@ static uint8_t connect_attempts;  /* counts CONNECTING timer ticks */
 PROCESS(coap_server_process,   "CoAP Server");
 PROCESS(coap_register_process, "CoAP Register to Cloud");
 PROCESS(mqtt_sensor_process,   "MQTT Sensor");
+extern struct process mqtt_sensor_process;
 
 AUTOSTART_PROCESSES(&coap_server_process,
                     &coap_register_process,
@@ -232,6 +252,7 @@ PROCESS_THREAD(coap_server_process, ev, data)
   coap_activate_resource(&res_leds,    "actuators/leds");
   coap_activate_resource(&res_push,    "test/push");
   coap_activate_resource(&res_status,  "actuators/status");
+  coap_activate_resource(&res_sampling, "actuators/sampling");
 #if PLATFORM_HAS_LEDS
   coap_activate_resource(&res_toggle,  "actuators/toggle");
 #endif
@@ -239,6 +260,7 @@ PROCESS_THREAD(coap_server_process, ev, data)
   LOG_INFO("CoAP server ready\n");
   LOG_INFO("  actuators/leds   — PUT ?color=r|g|b  body: mode=on|off\n");
   LOG_INFO("  actuators/status — GET|PUT body: on|off\n");
+  LOG_INFO("  actuators/sampling — GET|PUT body: <interval_ms>\n");
   LOG_INFO("  test/push        — GET Observe (cloud subscribes here)\n");
 
   while(1) {
@@ -293,7 +315,7 @@ PROCESS_THREAD(coap_register_process, ev, data)
   unsigned long sent_ms = clock_seconds() * 1000UL;
   snprintf(payload, sizeof(payload),
     "{\"node_id\":\"%s\",\"ip\":\"%s\",\"port\":5683,"
-    "\"type\":\"coap-mqtt-sensor\",\"proto\":\"coap\",\"sent_ms\":%lu}",
+    "\"type\":\"" NODE_TYPE "\",\"proto\":\"coap\",\"sent_ms\":%lu}",
     node_id, node_ip_str, sent_ms);
 
   coap_endpoint_parse(CLOUD_COAP_EP, strlen(CLOUD_COAP_EP), &cloud_ep);
@@ -439,17 +461,21 @@ static void publish_telemetry(void)
     "\"type\":\"" NODE_TYPE "\","
     "\"proto\":\"MQTT\","
     "\"ip\":\"%s\","
+    "\"seq\":%lu,"
     "\"v\":%d.%d,"
     "\"i\":%d.%d,"
     "\"anomaly\":%d,"
+    "\"publish_interval_ms\":%lu,"
     "\"sent_ms\":%lu,"
     "\"mode\":\"%s\","
     "\"status\":\"%s\""
     "}",
     node_id, node_ip_str,
+    mqtt_seq++,
     v_int, v_frac,
     i_int, i_frac,
     anomaly,
+    (unsigned long)get_publish_interval_ms(),
     sent_ms,
     anomaly ? "anomaly" : "normal",
     device_on ? "ON" : (device_starting ? "STARTING" : "OFF"));
@@ -508,6 +534,14 @@ PROCESS_THREAD(mqtt_sensor_process, ev, data)
   while(1) {
     PROCESS_YIELD();
 
+    if(ev == PROCESS_EVENT_POLL && publish_interval_is_dirty() &&
+       mqtt_state == MQTT_STATE_CONNECTED) {
+      etimer_set(&pub_timer, publish_interval_to_ticks(get_publish_interval_ms()));
+      publish_interval_clear_dirty();
+      LOG_INFO("[MQTT] Applied new publish interval: %lu ms\n",
+               (unsigned long)get_publish_interval_ms());
+    }
+
     if(etimer_expired(&pub_timer)) {
       if(!have_connectivity()) {
         /* Network not ready — check again soon */
@@ -520,7 +554,7 @@ PROCESS_THREAD(mqtt_sensor_process, ev, data)
         /* Connect to broker */
         connect_attempts = 0;
         mqtt_connect(&mqtt_conn, broker_ip, MQTT_BROKER_PORT,
-                     MQTT_PUBLISH_INTERVAL * 3 / CLOCK_SECOND /* keep-alive */,
+                     mqtt_keepalive_seconds() /* keep-alive */,
                      1 /* clean_session */);
         mqtt_state = MQTT_STATE_CONNECTING;
         LOG_INFO("[MQTT] Connecting to broker %s:%d\n", broker_ip, MQTT_BROKER_PORT);
@@ -547,7 +581,7 @@ PROCESS_THREAD(mqtt_sensor_process, ev, data)
         }
         /* Publish telemetry */
         publish_telemetry();
-        etimer_set(&pub_timer, MQTT_PUBLISH_INTERVAL);
+        etimer_set(&pub_timer, publish_interval_to_ticks(get_publish_interval_ms()));
         continue;
       }
 
